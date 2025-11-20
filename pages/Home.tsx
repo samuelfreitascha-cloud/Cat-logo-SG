@@ -1,0 +1,95 @@
+import React from 'react';
+import { Bell, Search, Umbrella, Armchair, Sofa, Tag } from 'lucide-react';
+import { PRODUCTS } from '../constants';
+import { ProductCard } from '../components/ProductCard';
+import { useNavigate } from 'react-router-dom';
+
+export const Home: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="p-6 pb-24">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Cadeira & Cia</h1>
+          <p className="text-sm text-slate-500">Encontre o assento perfeito</p>
+        </div>
+        <button className="relative p-2 rounded-full hover:bg-slate-100 transition-colors">
+          <Bell className="text-slate-600" size={24} />
+          <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+          </span>
+        </button>
+      </header>
+
+      {/* Search */}
+      <div className="relative mb-8 group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={20} />
+        <input 
+          type="text" 
+          placeholder="Procurar cadeiras, espreguiçadeiras..." 
+          className="w-full pl-12 pr-4 py-3 bg-slate-100 border-transparent focus:bg-white focus:border-primary focus:ring-primary rounded-xl text-slate-700 placeholder-slate-400 transition-all outline-none border-2"
+        />
+      </div>
+
+      {/* Hero Banner */}
+      <div className="relative rounded-2xl overflow-hidden mb-8 shadow-xl shadow-slate-200/50 group cursor-pointer">
+        <img 
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBT0RfRYF05rlnETMc5e_47gHgxZfkIdUMuJQ9VhXZq0_zEZjCN6oWiUkGpYlE1EJJFxvq4XnjwVwQQmpdqIbGMDPUqHVg3etMFOKnpdBnhEI8AJSDnQY6OjuIsYsPAb2jjfT7aWSL_YUAqI83bNdHmAPTbx6ESazzGKrr_Hfc2x0bToTVKwHIxJaoQlnJJ6He7CBUJYnRKkdnmf_5LE7pUD5L3QAPgOZDRX-iCpK609-DgxUTEDFb0opyJV8FvXB8onjFoZsWhGFE" 
+          alt="Promoção de Verão" 
+          className="w-full h-48 object-cover transform group-hover:scale-105 transition-transform duration-700"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end">
+          <h2 className="text-white text-xl font-bold">Promoção de Verão</h2>
+          <p className="text-slate-200 text-sm">Até 30% OFF em cadeiras de praia!</p>
+        </div>
+        <div className="absolute bottom-4 right-4 flex space-x-1.5">
+          <div className="w-6 h-1 bg-white rounded-full"></div>
+          <div className="w-2 h-1 bg-white/40 rounded-full"></div>
+          <div className="w-2 h-1 bg-white/40 rounded-full"></div>
+        </div>
+      </div>
+
+      {/* Categories */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold mb-4 text-slate-800">Categorias</h3>
+        <div className="grid grid-cols-4 gap-4 text-center">
+          {[
+            { name: 'Praia', icon: Umbrella, color: 'text-primary', bg: 'bg-primary/10' },
+            { name: 'Jardim', icon: Armchair, color: 'text-slate-500', bg: 'bg-slate-100' },
+            { name: 'Casa', icon: Sofa, color: 'text-slate-500', bg: 'bg-slate-100' },
+            { name: 'Ofertas', icon: Tag, color: 'text-slate-500', bg: 'bg-slate-100' },
+          ].map((cat, idx) => (
+            <button 
+              key={idx} 
+              onClick={() => navigate('/products')}
+              className="flex flex-col items-center space-y-2 group"
+            >
+              <div className={`w-16 h-16 ${cat.bg} rounded-2xl flex items-center justify-center transition-all group-hover:scale-95 group-active:scale-90`}>
+                <cat.icon className={`${cat.color} text-3xl`} size={28} strokeWidth={1.5} />
+              </div>
+              <p className="text-xs font-medium text-slate-600">{cat.name}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Popular Products */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-slate-800">Mais Populares</h3>
+          <button onClick={() => navigate('/products')} className="text-sm font-medium text-primary hover:text-primary-dark">
+            Ver todos
+          </button>
+        </div>
+        <div className="space-y-4">
+          {PRODUCTS.slice(0, 2).map(product => (
+            <ProductCard key={product.id} product={product} variant="list" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
