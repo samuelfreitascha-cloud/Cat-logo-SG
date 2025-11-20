@@ -22,7 +22,7 @@ export const Home: React.FC = () => {
           {!imgError ? (
             <img 
               src="https://drive.google.com/thumbnail?id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh&sz=s200" 
-              alt="Logo Catalogo Sungap" 
+              alt="Logo Catálogo Sungap" 
               className="w-12 h-12 object-contain"
               onError={() => setImgError(true)}
               referrerPolicy="no-referrer"
@@ -33,7 +33,7 @@ export const Home: React.FC = () => {
             </div>
           )}
           <div>
-            <h1 className="text-xl font-bold text-slate-800 leading-tight">Catalogo Sungap</h1>
+            <h1 className="text-xl font-bold text-slate-800 leading-tight">Catálogo Sungap</h1>
             <p className="text-xs text-slate-500">Encontre o assento perfeito</p>
           </div>
         </div>
