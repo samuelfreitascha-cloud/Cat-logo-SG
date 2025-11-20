@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ImageOff, ExternalLink, AlertTriangle, ZoomIn, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, AlertTriangle, ZoomIn, X } from 'lucide-react';
 
 // Configuração das imagens do Carrossel
 const CAROUSEL_IMAGES = [
@@ -41,42 +41,27 @@ export const HeroCarousel: React.FC = () => {
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
   const [isZoomOpen, setIsZoomOpen] = useState(false);
 
-  // Estados para o Zoom e Pan (Gestos)
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  
-  // Refs para cálculos de gestos sem re-renderizar desnecessariamente
-  const imageRef = useRef<HTMLImageElement>(null);
+  // Refs para animação direta (Performance Ultra Rápida)
+  // Não usamos useState aqui para evitar re-renderizar a cada movimento de pixel
+  const imgRef = useRef<HTMLImageElement>(null);
+  const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
 
-  // Auto-play apenas se houver mais de uma imagem
+  // Auto-play
   useEffect(() => {
     if (CAROUSEL_IMAGES.length <= 1) return;
-    
-    // Pausa se o modal de zoom estiver aberto
     if (isZoomOpen) return;
-
-    // Pausa o carrossel se estiver mostrando erro
     if (imageErrors[currentIndex]) return;
 
-    // Pausa se o link não for direto (modo ajuda)
     const currentImage = CAROUSEL_IMAGES[currentIndex];
     if (!isDirectLink(currentImage.url) && currentImage.url.includes('ibb.co')) return;
 
     const interval = setInterval(() => {
       nextSlide();
-    }, 5000); // 5 segundos por slide
+    }, 5000); 
     return () => clearInterval(interval);
   }, [currentIndex, imageErrors, isZoomOpen]);
-
-  // Resetar zoom ao abrir/fechar modal ou mudar slide
-  useEffect(() => {
-    if (!isZoomOpen) {
-      setScale(1);
-      setPosition({ x: 0, y: 0 });
-    }
-  }, [isZoomOpen, currentIndex]);
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
@@ -104,9 +89,24 @@ export const HeroCarousel: React.FC = () => {
         return;
     }
     setIsZoomOpen(true);
+    // Resetar transforms ao abrir
+    transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
-  // --- Lógica de Gestos (Touch) ---
+  const closeZoom = () => {
+    setIsZoomOpen(false);
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+  };
+
+  // --- Lógica de Gestos (High Performance) ---
+
+  const updateImageTransform = () => {
+    if (imgRef.current) {
+      const { x, y, scale } = transformRef.current;
+      // Usando translate3d para forçar aceleração de GPU
+      imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    }
+  };
 
   const getDistance = (touches: React.TouchList) => {
     return Math.hypot(
@@ -115,21 +115,12 @@ export const HeroCarousel: React.FC = () => {
     );
   };
 
-  const getMidpoint = (touches: React.TouchList) => {
-    return {
-      x: (touches[0].pageX + touches[1].pageX) / 2,
-      y: (touches[0].pageY + touches[1].pageY) / 2,
-    };
-  };
-
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      // Início do Zoom (Pinça)
       const dist = getDistance(e.touches);
       lastTouchRef.current = { x: 0, y: 0, dist };
-      initialScaleRef.current = scale;
-    } else if (e.touches.length === 1 && scale > 1) {
-      // Início do Pan (Arrastar) - só se estiver com zoom
+      initialScaleRef.current = transformRef.current.scale;
+    } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
       lastTouchRef.current = { 
         x: e.touches[0].pageX, 
         y: e.touches[0].pageY, 
@@ -139,48 +130,68 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault(); // Evita scroll da página no mobile
+    e.preventDefault(); // Prevenir scroll nativo
+    if (!lastTouchRef.current) return;
     
-    if (e.touches.length === 2 && lastTouchRef.current) {
-      // Calculando Zoom
+    if (e.touches.length === 2) {
+      // Zoom
       const dist = getDistance(e.touches);
       const scaleFactor = dist / lastTouchRef.current.dist;
-      // Limita o zoom entre 1x e 4x
-      const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 4);
-      setScale(newScale);
-    } else if (e.touches.length === 1 && scale > 1 && lastTouchRef.current) {
-      // Calculando Pan
+      // Limite máximo reduzido para 3x para manter qualidade
+      const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 3);
+      
+      transformRef.current.scale = newScale;
+      updateImageTransform();
+
+    } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
+      // Pan (Arrastar)
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      setPosition(prev => ({
-        x: prev.x + dx,
-        y: prev.y + dy
-      }));
+      transformRef.current.x += dx;
+      transformRef.current.y += dy;
 
       lastTouchRef.current = {
         ...lastTouchRef.current,
         x: e.touches[0].pageX,
         y: e.touches[0].pageY
       };
+      
+      updateImageTransform();
     }
   };
 
   const handleTouchEnd = () => {
     lastTouchRef.current = null;
-    // Snap back se escala for menor que 1 (opcional, já limitado no move)
-    if (scale < 1) {
-      setScale(1);
-      setPosition({ x: 0, y: 0 });
+    // Se escala for menor que 1, reseta suavemente
+    if (transformRef.current.scale < 1) {
+      transformRef.current = { x: 0, y: 0, scale: 1 };
+      if (imgRef.current) {
+        imgRef.current.style.transition = "transform 0.3s ease-out";
+        updateImageTransform();
+        // Remove transição após terminar para voltar a ser responsivo
+        setTimeout(() => {
+            if (imgRef.current) imgRef.current.style.transition = "none";
+        }, 300);
+      }
     }
   };
 
   const handleDoubleTap = () => {
-    if (scale > 1) {
-      setScale(1);
-      setPosition({ x: 0, y: 0 });
-    } else {
-      setScale(2.5); // Zoom rápido
+    if (imgRef.current) {
+      imgRef.current.style.transition = "transform 0.3s ease-out";
+      
+      if (transformRef.current.scale > 1) {
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+      } else {
+        transformRef.current = { x: 0, y: 0, scale: 2.5 };
+      }
+      
+      updateImageTransform();
+      
+      setTimeout(() => {
+        if (imgRef.current) imgRef.current.style.transition = "none";
+      }, 300);
     }
   };
 
@@ -211,27 +222,14 @@ export const HeroCarousel: React.FC = () => {
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white p-4 text-center font-sans" onClick={(e) => e.stopPropagation()}>
                     <AlertTriangle size={32} className="mb-2 text-yellow-400" />
-                    <h3 className="font-bold text-base mb-1">Link da Imagem {index + 1} Incorreto</h3>
-                    
-                    <div className="bg-slate-700/50 p-3 rounded-lg text-left text-xs text-slate-200 w-full max-w-xs border border-slate-600">
-                      <p className="mb-2">O link atual abre o <b>site</b>, não a <b>foto</b>.</p>
-                      <p className="font-bold text-yellow-400 mb-1">Como corrigir:</p>
-                      <ol className="list-decimal list-inside space-y-1 opacity-90">
-                        <li>Clique em "Abrir Link" abaixo</li>
-                        <li>No site, clique com <b>botão direito</b> na foto</li>
-                        <li>Selecione <b>"Copiar endereço da imagem"</b></li>
-                        <li>Me envie o link copiado!</li>
-                      </ol>
-                      <p className="mt-2 text-[10px] text-slate-400">Dica: O link certo começa com <b>i.ibb.co</b></p>
-                    </div>
-
+                    <h3 className="font-bold text-base mb-1">Link incorreto</h3>
                     <a 
                       href={image.url} 
                       target="_blank" 
                       rel="noreferrer" 
-                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full mt-4 text-xs font-bold transition-colors"
+                      className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full mt-4 text-xs font-bold"
                     >
-                      Abrir Link da Imagem {index + 1} <ExternalLink size={14} />
+                      Abrir Link Original
                     </a>
                   </div>
                 )}
@@ -254,7 +252,7 @@ export const HeroCarousel: React.FC = () => {
           })}
         </div>
 
-        {/* Setas de Navegação */}
+        {/* Navegação */}
         {CAROUSEL_IMAGES.length > 1 && (
           <>
             <button
@@ -269,7 +267,6 @@ export const HeroCarousel: React.FC = () => {
             >
               <ChevronRight size={24} />
             </button>
-            
             <div className="absolute bottom-4 right-4 flex space-x-2 z-20">
               {CAROUSEL_IMAGES.map((_, index) => (
                 <button
@@ -285,21 +282,20 @@ export const HeroCarousel: React.FC = () => {
         )}
       </div>
 
-      {/* Modal de Zoom Interativo */}
+      {/* Modal de Zoom Interativo Otimizado */}
       {isZoomOpen && (
         <div 
-          className="fixed inset-0 z-50 bg-black flex items-center justify-center animate-in fade-in duration-200 overflow-hidden"
-          onClick={() => setIsZoomOpen(false)}
-          style={{ touchAction: 'none' }} // Importante para previnir scroll do body
+          className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden"
+          onClick={closeZoom}
+          style={{ touchAction: 'none' }}
         >
           <button 
-            className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full bg-white/10 backdrop-blur-md transition-colors z-50"
-            onClick={() => setIsZoomOpen(false)}
+            className="absolute top-4 right-4 text-slate-800 p-2 rounded-full bg-slate-100 transition-colors z-50 shadow-md"
+            onClick={closeZoom}
           >
             <X size={32} />
           </button>
           
-          {/* Container da Imagem com Eventos de Touch */}
           <div 
             className="w-full h-full flex items-center justify-center"
             onTouchStart={handleTouchStart}
@@ -309,22 +305,18 @@ export const HeroCarousel: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <img 
-              ref={imageRef}
+              ref={imgRef}
               src={CAROUSEL_IMAGES[currentIndex].url} 
               alt={CAROUSEL_IMAGES[currentIndex].title}
-              className="max-w-full max-h-full object-contain transition-transform duration-75 ease-out"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-                cursor: scale > 1 ? 'grab' : 'zoom-in'
-              }}
+              className="max-w-full max-h-full object-contain will-change-transform"
               draggable={false}
             />
           </div>
           
-          <div className="absolute bottom-8 left-0 right-0 text-center text-white pointer-events-none">
-            <h2 className="text-xl font-bold mb-1 drop-shadow-md">{CAROUSEL_IMAGES[currentIndex].title}</h2>
-            <p className="text-white/80 text-sm drop-shadow-md">
-               {scale > 1 ? 'Toque duplo para resetar' : 'Faça o gesto de pinça para zoom'}
+          <div className="absolute bottom-8 left-0 right-0 text-center text-slate-500 pointer-events-none">
+            <h2 className="text-xl font-bold mb-1 text-slate-900">{CAROUSEL_IMAGES[currentIndex].title}</h2>
+            <p className="text-sm">
+               Toque duplo para resetar | Pinça para zoom (máx 3x)
             </p>
           </div>
         </div>

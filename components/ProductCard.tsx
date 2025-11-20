@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Plus, X, ZoomIn } from 'lucide-react';
 import { Product } from '../types';
@@ -12,13 +13,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const { addToCart } = useCart();
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   
-  // Estados para Gestos de Zoom
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  // Refs para animação direta (High Performance)
+  const imgRef = useRef<HTMLImageElement>(null);
+  const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
 
-  // Lógica de Gestos (Copiada e adaptada do HeroCarousel para consistência)
+  // --- Lógica de Gestos ---
+
+  const updateImageTransform = () => {
+    if (imgRef.current) {
+      const { x, y, scale } = transformRef.current;
+      imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    }
+  };
+
   const getDistance = (touches: React.TouchList) => {
     return Math.hypot(
       touches[0].pageX - touches[1].pageX,
@@ -30,8 +39,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     if (e.touches.length === 2) {
       const dist = getDistance(e.touches);
       lastTouchRef.current = { x: 0, y: 0, dist };
-      initialScaleRef.current = scale;
-    } else if (e.touches.length === 1 && scale > 1) {
+      initialScaleRef.current = transformRef.current.scale;
+    } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
       lastTouchRef.current = { 
         x: e.touches[0].pageX, 
         y: e.touches[0].pageY, 
@@ -41,52 +50,74 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (isZoomOpen) e.preventDefault();
+    e.preventDefault();
+    if (!lastTouchRef.current) return;
     
-    if (e.touches.length === 2 && lastTouchRef.current) {
+    if (e.touches.length === 2) {
       const dist = getDistance(e.touches);
       const scaleFactor = dist / lastTouchRef.current.dist;
-      const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 4);
-      setScale(newScale);
-    } else if (e.touches.length === 1 && scale > 1 && lastTouchRef.current) {
+      // Limitado a 3x para qualidade
+      const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 3);
+      transformRef.current.scale = newScale;
+      updateImageTransform();
+
+    } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
-      setPosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      transformRef.current.x += dx;
+      transformRef.current.y += dy;
+      
       lastTouchRef.current = { ...lastTouchRef.current, x: e.touches[0].pageX, y: e.touches[0].pageY };
+      updateImageTransform();
     }
   };
 
   const handleTouchEnd = () => {
     lastTouchRef.current = null;
-    if (scale < 1) { setScale(1); setPosition({ x: 0, y: 0 }); }
+    if (transformRef.current.scale < 1) { 
+      transformRef.current = { x: 0, y: 0, scale: 1 };
+      if (imgRef.current) {
+        imgRef.current.style.transition = "transform 0.3s ease-out";
+        updateImageTransform();
+        setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
+      }
+    }
   };
 
   const handleDoubleTap = () => {
-    if (scale > 1) { setScale(1); setPosition({ x: 0, y: 0 }); }
-    else { setScale(2.5); }
+    if (imgRef.current) {
+      imgRef.current.style.transition = "transform 0.3s ease-out";
+      if (transformRef.current.scale > 1) { 
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+      } else { 
+        transformRef.current = { x: 0, y: 0, scale: 2.5 }; 
+      }
+      updateImageTransform();
+      setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
+    }
   };
 
   const openZoom = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsZoomOpen(true);
+    transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
   const closeZoom = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     setIsZoomOpen(false);
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
+    transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
-  // Conteúdo do Modal de Zoom
+  // Conteúdo do Modal de Zoom (Fundo Branco, Performance Otimizada)
   const ZoomModal = () => (
     <div 
-      className="fixed inset-0 z-[60] bg-black flex items-center justify-center animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] bg-white flex items-center justify-center animate-in fade-in duration-200"
       onClick={closeZoom}
       style={{ touchAction: 'none' }}
     >
       <button 
-        className="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-full bg-white/10 backdrop-blur-md transition-colors z-50"
+        className="absolute top-4 right-4 text-slate-800 p-2 rounded-full bg-slate-100 transition-colors z-50 shadow-md"
         onClick={closeZoom}
       >
         <X size={32} />
@@ -101,21 +132,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         onClick={(e) => e.stopPropagation()}
       >
         <img 
+          ref={imgRef}
           src={product.image} 
           alt={product.name}
-          className="max-w-full max-h-full object-contain transition-transform duration-75 ease-out"
-          style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-            cursor: scale > 1 ? 'grab' : 'zoom-in'
-          }}
+          className="max-w-full max-h-full object-contain will-change-transform"
           draggable={false}
         />
       </div>
       
-      <div className="absolute bottom-8 left-0 right-0 text-center text-white pointer-events-none">
-        <h2 className="text-xl font-bold mb-1 drop-shadow-md">{product.name}</h2>
-        <p className="text-white/80 text-sm drop-shadow-md">
-           {scale > 1 ? 'Toque duplo para resetar' : 'Faça o gesto de pinça para zoom'}
+      <div className="absolute bottom-8 left-0 right-0 text-center text-slate-500 pointer-events-none">
+        <h2 className="text-xl font-bold mb-1 text-slate-900">{product.name}</h2>
+        <p className="text-sm">
+           {transformRef.current.scale > 1 ? 'Toque duplo para resetar' : 'Faça o gesto de pinça para zoom (máx 3x)'}
         </p>
       </div>
     </div>
@@ -132,7 +160,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
               className="w-20 h-20 object-contain bg-white rounded-lg mr-4 border border-slate-50"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center mr-4">
-               <ZoomIn className="text-white opacity-0 group-hover:opacity-100" size={20} />
+               <ZoomIn className="text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 p-1 rounded-full" size={18} />
             </div>
           </div>
           <div className="flex-1 min-w-0">
