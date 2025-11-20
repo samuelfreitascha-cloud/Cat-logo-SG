@@ -4,6 +4,7 @@ import { Bell, Search, Umbrella, Armchair, Sofa, Tag } from 'lucide-react';
 import { PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { useNavigate } from 'react-router-dom';
+import { HeroCarousel } from '../components/HeroCarousel';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -55,24 +56,8 @@ export const Home: React.FC = () => {
         />
       </div>
 
-      {/* Hero Banner */}
-      <div className="relative rounded-2xl overflow-hidden mb-8 shadow-xl shadow-slate-200/50 group cursor-pointer">
-        {/* IMAGEM DO BANNER ATUALIZADA */}
-        <img 
-          src="https://ibb.co/m5gKKTHL" 
-          alt="Promoção de Verão" 
-          className="w-full h-48 object-cover transform group-hover:scale-105 transition-transform duration-700"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end">
-          <h2 className="text-white text-xl font-bold">Promoção de Verão</h2>
-          <p className="text-slate-200 text-sm">Até 30% OFF em cadeiras de praia!</p>
-        </div>
-        <div className="absolute bottom-4 right-4 flex space-x-1.5">
-          <div className="w-6 h-1 bg-white rounded-full"></div>
-          <div className="w-2 h-1 bg-white/40 rounded-full"></div>
-          <div className="w-2 h-1 bg-white/40 rounded-full"></div>
-        </div>
-      </div>
+      {/* Novo Carrossel Interativo */}
+      <HeroCarousel />
 
       {/* Categories */}
       <div className="mb-8">
