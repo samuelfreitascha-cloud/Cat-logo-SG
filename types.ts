@@ -10,6 +10,7 @@ export interface Product {
   category?: string;
   color?: string;
   externalUrl?: string; // Link externo para compra (ex: Mercado Livre)
+  infoImage?: string; // URL para imagem de detalhes técnicos ("Saber mais")
 }
 
 export interface CartItem extends Product {

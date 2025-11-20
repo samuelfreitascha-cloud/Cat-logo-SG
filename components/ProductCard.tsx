@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Plus, X, ZoomIn, ChevronLeft, ChevronRight, ShoppingBag, MessageCircle } from 'lucide-react';
+import { Plus, X, ZoomIn, ChevronLeft, ChevronRight, ShoppingBag, MessageCircle, Info, Image as ImageIcon } from 'lucide-react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 
@@ -13,6 +13,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const { addToCart } = useCart();
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [showInfoImage, setShowInfoImage] = useState(false);
   
   // Refs para animação direta (High Performance)
   const imgRef = useRef<HTMLImageElement>(null);
@@ -22,6 +23,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   // Determina as imagens a serem usadas (Galeria ou Imagem única)
   const images = product.gallery && product.gallery.length > 0 ? product.gallery : [product.image];
+
+  // URL da imagem atual (pode ser da galeria ou a imagem de informação)
+  const currentImageSrc = showInfoImage && product.infoImage ? product.infoImage : images[activeImageIndex];
 
   // Verifica se é um link de WhatsApp para mudar o ícone e cor
   const isWhatsApp = product.externalUrl && (product.externalUrl.includes('wa.me') || product.externalUrl.includes('whatsapp'));
@@ -119,6 +123,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const openZoom = (e: React.MouseEvent) => {
     e.stopPropagation();
     setActiveImageIndex(0);
+    setShowInfoImage(false);
     setIsZoomOpen(true);
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
@@ -126,11 +131,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const closeZoom = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     setIsZoomOpen(false);
+    setShowInfoImage(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (showInfoImage) return; // Sem navegação na tela de info
     if (activeImageIndex < images.length - 1) {
       changeImage(activeImageIndex + 1);
     } else {
@@ -140,6 +147,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (showInfoImage) return; // Sem navegação na tela de info
     if (activeImageIndex > 0) {
       changeImage(activeImageIndex - 1);
     } else {
@@ -151,12 +159,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     transformRef.current = { x: 0, y: 0, scale: 1 };
     updateImageTransform();
     setActiveImageIndex(index);
+    setShowInfoImage(false);
+  };
+
+  const toggleInfoImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    updateImageTransform();
+    setShowInfoImage(!showInfoImage);
   };
 
   // --- Renderização dos Ícones de Ação ---
   const renderActionButton = (isList: boolean) => {
-    // Se for WhatsApp, usa Verde.
-    // Se for outro link externo (Mercado Livre) ou interno, usa Primary (Ciano/Esverdeado).
     const buttonClasses = isList 
       ? `p-2 rounded-full transition-colors ${
           product.externalUrl && isWhatsApp
@@ -180,74 +194,115 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     );
   };
 
-  const ZoomModal = () => (
-    <div 
-      className="fixed inset-0 z-[60] bg-white flex flex-col animate-in fade-in duration-200"
-      onClick={closeZoom}
-      style={{ touchAction: 'none' }}
-    >
-      <div className="flex justify-between items-center p-4 z-50 bg-white/80 backdrop-blur-sm absolute top-0 left-0 right-0">
-         <h2 className="text-lg font-bold text-slate-900 truncate pr-4">{product.name}</h2>
-         <button 
-          className="text-slate-800 p-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors shadow-sm"
-          onClick={closeZoom}
-        >
-          <X size={24} />
-        </button>
-      </div>
-      
+  const ZoomModal = () => {
+    // Aplicar zoom inicial para produto Veneza (apenas se não for infoImage e for o produto específico)
+    const isVenezaInitial = product.id === '1' && !showInfoImage && activeImageIndex === 0;
+    
+    return (
       <div 
-        className="flex-1 flex items-center justify-center relative w-full h-full overflow-hidden bg-white"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onDoubleClick={handleDoubleTap}
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-[60] bg-white flex flex-col animate-in fade-in duration-200"
+        onClick={closeZoom}
+        style={{ touchAction: 'none' }}
       >
-        <img 
-          ref={imgRef}
-          src={images[activeImageIndex]} 
-          alt={`${product.name} view ${activeImageIndex + 1}`}
-          className="max-w-full max-h-full object-contain will-change-transform px-4"
-          draggable={false}
-        />
-        {images.length > 1 && (
-          <>
-            <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"><ChevronLeft size={24} /></button>
-            <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"><ChevronRight size={24} /></button>
-          </>
-        )}
+        <div className="flex justify-between items-center p-4 z-50 bg-white/80 backdrop-blur-sm absolute top-0 left-0 right-0">
+           <h2 className="text-lg font-bold text-slate-900 truncate pr-4">{product.name}</h2>
+           <button 
+            className="text-slate-800 p-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors shadow-sm"
+            onClick={closeZoom}
+          >
+            <X size={24} />
+          </button>
+        </div>
+        
+        <div 
+          className="flex-1 flex items-center justify-center relative w-full h-full overflow-hidden bg-white"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onDoubleClick={handleDoubleTap}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img 
+            ref={imgRef}
+            src={currentImageSrc} 
+            alt={`${product.name} view`}
+            className={`max-w-full max-h-full object-contain will-change-transform px-4 ${isVenezaInitial ? 'scale-150' : ''}`}
+            draggable={false}
+            style={isVenezaInitial && transformRef.current.scale === 1 ? { transform: 'scale(1.5)' } : undefined}
+          />
+          {!showInfoImage && images.length > 1 && (
+            <>
+              <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"><ChevronLeft size={24} /></button>
+              <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"><ChevronRight size={24} /></button>
+            </>
+          )}
+        </div>
+        
+        <div className="bg-white border-t border-slate-100 p-4 pb-8 z-50 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+          
+          {/* Botão Saber Mais / Voltar */}
+          {product.infoImage && (
+            <button 
+              onClick={toggleInfoImage}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm shadow-sm transition-all active:scale-95 ${
+                showInfoImage 
+                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
+              }`}
+            >
+              {showInfoImage ? (
+                <>
+                  <ImageIcon size={18} />
+                  Voltar para fotos
+                </>
+              ) : (
+                <>
+                  <Info size={18} />
+                  Saber mais
+                </>
+              )}
+            </button>
+          )}
+
+          {!showInfoImage && (
+            <>
+              <p className="text-xs text-slate-400 uppercase font-medium tracking-wider">
+                {transformRef.current.scale > 1 ? 'Toque duplo para resetar zoom' : `${activeImageIndex + 1} / ${images.length}`}
+              </p>
+              {images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto max-w-full px-2 no-scrollbar py-1">
+                  {images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => changeImage(idx)}
+                      className={`relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
+                        activeImageIndex === idx ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-      
-      <div className="bg-white border-t border-slate-100 p-4 pb-8 z-50 flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
-        <p className="text-xs text-slate-400 mb-3 uppercase font-medium tracking-wider">
-          {transformRef.current.scale > 1 ? 'Toque duplo para resetar zoom' : `${activeImageIndex + 1} / ${images.length}`}
-        </p>
-        {images.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto max-w-full px-2 no-scrollbar py-1">
-            {images.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => changeImage(idx)}
-                className={`relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
-                  activeImageIndex === idx ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
-                }`}
-              >
-                <img src={img} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   if (variant === 'list') {
     return (
       <>
         <div className="flex items-center bg-white p-3 rounded-xl shadow-sm border border-slate-100">
           <div className="relative cursor-pointer group" onClick={openZoom}>
-            <img src={product.image} alt={product.name} className="w-20 h-20 object-contain bg-white rounded-lg mr-4 border border-slate-50" />
+            <div className={`w-20 h-20 overflow-hidden bg-white rounded-lg mr-4 border border-slate-50 ${product.id === '1' ? 'flex items-center justify-center' : ''}`}>
+               <img 
+                 src={product.image} 
+                 alt={product.name} 
+                 className={`w-full h-full object-contain bg-white ${product.id === '1' ? 'scale-150' : ''}`} 
+               />
+            </div>
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center mr-4">
                <ZoomIn className="text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 p-1 rounded-full" size={18} />
             </div>
@@ -268,7 +323,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     <>
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden group flex flex-col h-full">
         <div className="relative aspect-square bg-white overflow-hidden cursor-pointer" onClick={openZoom}>
-          <img src={product.image} alt={product.name} className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" />
+          <img 
+            src={product.image} 
+            alt={product.name} 
+            className={`w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105 ${product.id === '1' ? 'scale-150' : ''}`} 
+          />
           <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/5 transition-colors">
              <ZoomIn className="text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 p-1.5 rounded-full shadow-sm" size={28} />
           </div>
