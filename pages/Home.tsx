@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Bell, Search, Umbrella, Armchair, Sofa, Tag } from 'lucide-react';
 import { PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
+  const [imgError, setImgError] = useState(false);
 
   return (
     <div className="p-6 pb-24">
@@ -14,15 +15,22 @@ export const Home: React.FC = () => {
       <header className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           {/* 
-            Link do Google Drive convertido para formato de exibição direta:
-            Original: https://drive.google.com/file/d/1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh/view?usp=sharing
-            Direto: https://drive.google.com/uc?export=view&id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh
+            Lógica de Logo: Tenta carregar a imagem. 
+            Se der erro (bloqueio do Google), mostra o ícone de fallback.
           */}
-          <img 
-            src="https://drive.google.com/uc?export=view&id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh" 
-            alt="Logo Catalogo Sungap" 
-            className="w-12 h-12 object-contain"
-          />
+          {!imgError ? (
+            <img 
+              src="https://drive.google.com/thumbnail?id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh&sz=s200" 
+              alt="Logo Catalogo Sungap" 
+              className="w-12 h-12 object-contain"
+              onError={() => setImgError(true)}
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+              <Umbrella className="text-primary" size={28} />
+            </div>
+          )}
           <div>
             <h1 className="text-xl font-bold text-slate-800 leading-tight">Catalogo Sungap</h1>
             <p className="text-xs text-slate-500">Encontre o assento perfeito</p>
