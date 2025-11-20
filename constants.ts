@@ -9,7 +9,9 @@ export const PRODUCTS: Product[] = [
     price: 189.90,
     image: 'https://images.unsplash.com/photo-1594026112284-02bb6f3352fe?q=80&w=2070&auto=format&fit=crop',
     category: 'Praia',
-    color: 'Azul Náutico'
+    color: 'Azul Náutico',
+    // COLE O LINK ABAIXO (Se for WhatsApp use: https://wa.me/5511999999999)
+    // externalUrl: 'https://...',
   },
   {
     id: '2',
@@ -17,9 +19,9 @@ export const PRODUCTS: Product[] = [
     description: 'Alumínio e Tela sling',
     price: 249.90,
     image: 'https://i.ibb.co/8DsSfthQ/image.png',
-    // Link externo adicionado
+    // Link externo (Mercado Livre) - Já configurado
     externalUrl: 'https://produto.mercadolivre.com.br/MLB-4075779991-cadeira-de-praia-reclinavel-fixa-dura-mais-resistente-jardim-_JM',
-    // Galeria adicionada conforme solicitado
+    // Galeria de imagens
     gallery: [
       'https://i.ibb.co/8DsSfthQ/image.png',
       'https://i.ibb.co/ZzThrWG0/1.png',
@@ -38,7 +40,9 @@ export const PRODUCTS: Product[] = [
     price: 159.00,
     image: 'https://images.unsplash.com/photo-1519947486511-463999512756?q=80&w=2028&auto=format&fit=crop',
     category: 'Casa',
-    color: 'Branco'
+    color: 'Branco',
+    // COLE O LINK ABAIXO
+    // externalUrl: 'https://...',
   },
   {
     id: '4',
@@ -47,7 +51,9 @@ export const PRODUCTS: Product[] = [
     price: 299.00,
     image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?q=80&w=1974&auto=format&fit=crop',
     category: 'Jardim',
-    color: 'Amarelo'
+    color: 'Amarelo',
+    // COLE O LINK ABAIXO
+    // externalUrl: 'https://...',
   }
 ];
 

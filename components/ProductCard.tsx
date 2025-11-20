@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Plus, X, ZoomIn, ChevronLeft, ChevronRight, ShoppingBag, ExternalLink } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, X, ZoomIn, ChevronLeft, ChevronRight, ShoppingBag, MessageCircle } from 'lucide-react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 
@@ -23,14 +23,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   // Determina as imagens a serem usadas (Galeria ou Imagem única)
   const images = product.gallery && product.gallery.length > 0 ? product.gallery : [product.image];
 
+  // Verifica se é um link de WhatsApp para mudar o ícone e cor
+  const isWhatsApp = product.externalUrl && (product.externalUrl.includes('wa.me') || product.externalUrl.includes('whatsapp'));
+
   const handleActionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     
     if (product.externalUrl) {
-      // Se tiver link externo (ex: Mercado Livre), abre em nova aba
+      // Se tiver link externo, abre em nova aba
       window.open(product.externalUrl, '_blank');
     } else {
-      // Caso contrário, adiciona ao carrinho interno
+      // Caso contrário, adiciona ao carrinho interno (fallback)
       addToCart(product);
     }
   };
@@ -66,8 +69,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    // Importante: Não previne default se estiver com zoom 1 (para permitir scroll de thumbnails se necessário, ou gestos do sistema)
-    // Mas aqui estamos em modal fixed, então previnir default é seguro para evitar scroll da página de fundo
     e.preventDefault(); 
     
     if (!lastTouchRef.current) return;
@@ -117,7 +118,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const openZoom = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveImageIndex(0); // Resetar para primeira imagem ao abrir
+    setActiveImageIndex(0);
     setIsZoomOpen(true);
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
@@ -133,7 +134,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     if (activeImageIndex < images.length - 1) {
       changeImage(activeImageIndex + 1);
     } else {
-      changeImage(0); // Loop
+      changeImage(0);
     }
   };
 
@@ -142,25 +143,47 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     if (activeImageIndex > 0) {
       changeImage(activeImageIndex - 1);
     } else {
-      changeImage(images.length - 1); // Loop
+      changeImage(images.length - 1);
     }
   };
 
   const changeImage = (index: number) => {
-    // Reset zoom when changing image
     transformRef.current = { x: 0, y: 0, scale: 1 };
     updateImageTransform();
     setActiveImageIndex(index);
   };
 
-  // Conteúdo do Modal de Zoom (Galeria)
+  // --- Renderização dos Ícones de Ação ---
+  const renderActionButton = (isList: boolean) => {
+    const buttonClasses = isList 
+      ? `p-2 rounded-full transition-colors ${
+          product.externalUrl 
+            ? (isWhatsApp ? 'bg-green-100 text-green-700 hover:bg-green-600 hover:text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white')
+            : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+        }`
+      : `p-2 rounded-lg text-white transition-colors shadow-md active:scale-95 ${
+          product.externalUrl
+            ? (isWhatsApp ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200')
+            : 'bg-primary hover:bg-primary-dark shadow-cyan-200'
+        }`;
+
+    return (
+      <button onClick={handleActionClick} className={buttonClasses}>
+        {product.externalUrl ? (
+          isWhatsApp ? <MessageCircle size={isList ? 20 : 16} /> : <ShoppingBag size={isList ? 20 : 16} />
+        ) : (
+          <Plus size={isList ? 20 : 16} />
+        )}
+      </button>
+    );
+  };
+
   const ZoomModal = () => (
     <div 
       className="fixed inset-0 z-[60] bg-white flex flex-col animate-in fade-in duration-200"
       onClick={closeZoom}
       style={{ touchAction: 'none' }}
     >
-      {/* Header do Modal */}
       <div className="flex justify-between items-center p-4 z-50 bg-white/80 backdrop-blur-sm absolute top-0 left-0 right-0">
          <h2 className="text-lg font-bold text-slate-900 truncate pr-4">{product.name}</h2>
          <button 
@@ -171,7 +194,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         </button>
       </div>
       
-      {/* Área da Imagem Principal */}
       <div 
         className="flex-1 flex items-center justify-center relative w-full h-full overflow-hidden bg-white"
         onTouchStart={handleTouchStart}
@@ -187,35 +209,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           className="max-w-full max-h-full object-contain will-change-transform px-4"
           draggable={false}
         />
-
-        {/* Setas de Navegação (se houver mais de uma imagem) */}
         {images.length > 1 && (
           <>
-            <button 
-              onClick={prevImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"
-            >
-              <ChevronLeft size={24} />
-            </button>
-            <button 
-              onClick={nextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"
-            >
-              <ChevronRight size={24} />
-            </button>
+            <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"><ChevronLeft size={24} /></button>
+            <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"><ChevronRight size={24} /></button>
           </>
         )}
       </div>
       
-      {/* Footer com Miniaturas */}
-      <div 
-        className="bg-white border-t border-slate-100 p-4 pb-8 z-50 flex flex-col items-center"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-white border-t border-slate-100 p-4 pb-8 z-50 flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
         <p className="text-xs text-slate-400 mb-3 uppercase font-medium tracking-wider">
           {transformRef.current.scale > 1 ? 'Toque duplo para resetar zoom' : `${activeImageIndex + 1} / ${images.length}`}
         </p>
-        
         {images.length > 1 && (
           <div className="flex gap-2 overflow-x-auto max-w-full px-2 no-scrollbar py-1">
             {images.map((img, idx) => (
@@ -223,9 +228,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                 key={idx}
                 onClick={() => changeImage(idx)}
                 className={`relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
-                  activeImageIndex === idx 
-                    ? 'border-primary ring-2 ring-primary/20' 
-                    : 'border-transparent opacity-60 hover:opacity-100'
+                  activeImageIndex === idx ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
                 }`}
               >
                 <img src={img} alt="" className="w-full h-full object-cover" />
@@ -242,11 +245,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
       <>
         <div className="flex items-center bg-white p-3 rounded-xl shadow-sm border border-slate-100">
           <div className="relative cursor-pointer group" onClick={openZoom}>
-            <img 
-              src={product.image} 
-              alt={product.name} 
-              className="w-20 h-20 object-contain bg-white rounded-lg mr-4 border border-slate-50"
-            />
+            <img src={product.image} alt={product.name} className="w-20 h-20 object-contain bg-white rounded-lg mr-4 border border-slate-50" />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center mr-4">
                <ZoomIn className="text-slate-800 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 p-1 rounded-full" size={18} />
             </div>
@@ -254,43 +253,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           <div className="flex-1 min-w-0">
             <h4 className="font-semibold text-slate-800 truncate">{product.name}</h4>
             <p className="text-sm text-slate-500 truncate">{product.description}</p>
-            <p className="text-md font-bold text-primary mt-1">
-              R$ {product.price.toFixed(2).replace('.', ',')}
-            </p>
+            <p className="text-md font-bold text-primary mt-1">R$ {product.price.toFixed(2).replace('.', ',')}</p>
           </div>
-          <button 
-            onClick={handleActionClick}
-            className={`p-2 rounded-full transition-colors ${
-              product.externalUrl 
-                ? 'bg-green-100 text-green-700 hover:bg-green-600 hover:text-white' 
-                : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
-            }`}
-          >
-            {product.externalUrl ? <ShoppingBag size={20} /> : <Plus size={20} />}
-          </button>
+          {renderActionButton(true)}
         </div>
         {isZoomOpen && <ZoomModal />}
       </>
     );
   }
 
-  // Grid Variant
   return (
     <>
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden group flex flex-col h-full">
-        <div 
-          className="relative aspect-square bg-white overflow-hidden cursor-pointer"
-          onClick={openZoom}
-        >
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" 
-          />
+        <div className="relative aspect-square bg-white overflow-hidden cursor-pointer" onClick={openZoom}>
+          <img src={product.image} alt={product.name} className="w-full h-full object-contain p-2 transition-transform duration-500 group-hover:scale-105" />
           <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/5 transition-colors">
              <ZoomIn className="text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 p-1.5 rounded-full shadow-sm" size={28} />
           </div>
-          {/* Ícone indicando galeria se houver mais de uma foto */}
           {images.length > 1 && (
             <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded flex items-center">
               <span className="mr-1 font-bold">{images.length}</span> fotos
@@ -301,19 +280,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           <h3 className="font-semibold text-sm text-slate-800 truncate">{product.name}</h3>
           <p className="text-xs text-slate-500 mb-2 truncate">{product.description}</p>
           <div className="mt-auto flex justify-between items-center">
-            <span className="font-bold text-base text-slate-900">
-              R$ {product.price.toFixed(2).replace('.', ',')}
-            </span>
-            <button 
-              onClick={handleActionClick}
-              className={`p-2 rounded-lg text-white transition-colors shadow-md active:scale-95 ${
-                product.externalUrl
-                  ? 'bg-green-600 hover:bg-green-700 shadow-green-200'
-                  : 'bg-blue-500 hover:bg-blue-600 shadow-blue-200'
-              }`}
-            >
-              {product.externalUrl ? <ShoppingBag size={16} /> : <Plus size={16} />}
-            </button>
+            <span className="font-bold text-base text-slate-900">R$ {product.price.toFixed(2).replace('.', ',')}</span>
+            {renderActionButton(false)}
           </div>
         </div>
       </div>
