@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink, AlertTriangle, ZoomIn, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, ZoomIn, X } from 'lucide-react';
 
 // Configuração das imagens do Carrossel
 const CAROUSEL_IMAGES = [
@@ -42,8 +42,8 @@ export const HeroCarousel: React.FC = () => {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   // Refs para animação direta (Performance Ultra Rápida)
-  // Não usamos useState aqui para evitar re-renderizar a cada movimento de pixel
   const imgRef = useRef<HTMLImageElement>(null);
+  const uiRef = useRef<HTMLDivElement>(null); // Controle de UI
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
@@ -89,7 +89,6 @@ export const HeroCarousel: React.FC = () => {
         return;
     }
     setIsZoomOpen(true);
-    // Resetar transforms ao abrir
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
@@ -103,8 +102,17 @@ export const HeroCarousel: React.FC = () => {
   const updateImageTransform = () => {
     if (imgRef.current) {
       const { x, y, scale } = transformRef.current;
-      // Usando translate3d para forçar aceleração de GPU
       imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    }
+
+    // Controlar opacidade da UI baseada no zoom
+    if (uiRef.current) {
+      const { scale } = transformRef.current;
+      const opacity = scale > 1.05 ? '0' : '1';
+      if (uiRef.current.style.opacity !== opacity) {
+          uiRef.current.style.opacity = opacity;
+          uiRef.current.style.transition = 'opacity 0.2s ease-out';
+      }
     }
   };
 
@@ -130,21 +138,18 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault(); // Prevenir scroll nativo
+    e.preventDefault();
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
-      // Zoom
       const dist = getDistance(e.touches);
       const scaleFactor = dist / lastTouchRef.current.dist;
-      // Limite máximo reduzido para 3x para manter qualidade
       const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 3);
       
       transformRef.current.scale = newScale;
       updateImageTransform();
 
     } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
-      // Pan (Arrastar)
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
@@ -163,13 +168,11 @@ export const HeroCarousel: React.FC = () => {
 
   const handleTouchEnd = () => {
     lastTouchRef.current = null;
-    // Se escala for menor que 1, reseta suavemente
     if (transformRef.current.scale < 1) {
       transformRef.current = { x: 0, y: 0, scale: 1 };
       if (imgRef.current) {
         imgRef.current.style.transition = "transform 0.3s ease-out";
         updateImageTransform();
-        // Remove transição após terminar para voltar a ser responsivo
         setTimeout(() => {
             if (imgRef.current) imgRef.current.style.transition = "none";
         }, 300);
@@ -180,15 +183,12 @@ export const HeroCarousel: React.FC = () => {
   const handleDoubleTap = () => {
     if (imgRef.current) {
       imgRef.current.style.transition = "transform 0.3s ease-out";
-      
       if (transformRef.current.scale > 1) {
         transformRef.current = { x: 0, y: 0, scale: 1 };
       } else {
         transformRef.current = { x: 0, y: 0, scale: 2.5 };
       }
-      
       updateImageTransform();
-      
       setTimeout(() => {
         if (imgRef.current) imgRef.current.style.transition = "none";
       }, 300);
@@ -290,10 +290,10 @@ export const HeroCarousel: React.FC = () => {
           style={{ touchAction: 'none' }}
         >
           <button 
-            className="absolute top-4 right-4 text-slate-800 p-2 rounded-full bg-slate-100 transition-colors z-50 shadow-md"
+            className="absolute top-4 right-4 text-slate-800 p-2.5 rounded-full bg-white/90 shadow-md backdrop-blur-sm z-50 hover:bg-slate-100 active:scale-95 transition-all"
             onClick={closeZoom}
           >
-            <X size={32} />
+            <X size={24} />
           </button>
           
           <div 
@@ -313,7 +313,7 @@ export const HeroCarousel: React.FC = () => {
             />
           </div>
           
-          <div className="absolute bottom-8 left-0 right-0 text-center text-slate-500 pointer-events-none">
+          <div ref={uiRef} className="absolute bottom-8 left-0 right-0 text-center text-slate-500 pointer-events-none transition-opacity duration-200">
             <h2 className="text-xl font-bold mb-1 text-slate-900">{CAROUSEL_IMAGES[currentIndex].title}</h2>
             <p className="text-sm">
                Toque duplo para resetar | Pinça para zoom (máx 3x)

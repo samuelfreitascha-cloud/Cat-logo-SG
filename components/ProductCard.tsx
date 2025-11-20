@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, ZoomIn, ChevronLeft, ChevronRight, ShoppingBag, MessageCircle, Info, Image as ImageIcon } from 'lucide-react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
@@ -17,6 +17,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   
   // Refs para animação direta (High Performance)
   const imgRef = useRef<HTMLImageElement>(null);
+  const uiRef = useRef<HTMLDivElement>(null); // Ref para elementos da interface que somem
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
@@ -34,10 +35,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     e.stopPropagation();
     
     if (product.externalUrl) {
-      // Se tiver link externo, abre em nova aba
       window.open(product.externalUrl, '_blank');
     } else {
-      // Caso contrário, adiciona ao carrinho interno (fallback)
       addToCart(product);
     }
   };
@@ -45,9 +44,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   // --- Lógica de Gestos ---
 
   const updateImageTransform = () => {
+    // Atualiza a imagem
     if (imgRef.current) {
       const { x, y, scale } = transformRef.current;
       imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    }
+
+    // Atualiza a interface (Fade out ao dar zoom)
+    if (uiRef.current) {
+        const { scale } = transformRef.current;
+        // Se o zoom for maior que 1.05 (começou a ampliar), esconde a UI
+        const opacity = scale > 1.05 ? '0' : '1';
+        const pointerEvents = scale > 1.05 ? 'none' : 'auto';
+        
+        if (uiRef.current.style.opacity !== opacity) {
+            uiRef.current.style.opacity = opacity;
+            uiRef.current.style.pointerEvents = pointerEvents;
+        }
     }
   };
 
@@ -73,6 +86,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (showInfoImage) return; // Permite scroll nativo na tela de info
+
     e.preventDefault(); 
     
     if (!lastTouchRef.current) return;
@@ -137,7 +152,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (showInfoImage) return; // Sem navegação na tela de info
+    if (showInfoImage) return; 
     if (activeImageIndex < images.length - 1) {
       changeImage(activeImageIndex + 1);
     } else {
@@ -147,7 +162,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (showInfoImage) return; // Sem navegação na tela de info
+    if (showInfoImage) return; 
     if (activeImageIndex > 0) {
       changeImage(activeImageIndex - 1);
     } else {
@@ -159,7 +174,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     transformRef.current = { x: 0, y: 0, scale: 1 };
     updateImageTransform();
     setActiveImageIndex(index);
-    setShowInfoImage(false);
   };
 
   const toggleInfoImage = (e: React.MouseEvent) => {
@@ -197,6 +211,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const ZoomModal = () => {
     // Aplicar zoom inicial para produto Veneza (apenas se não for infoImage e for o produto específico)
     const isVenezaInitial = product.id === '1' && !showInfoImage && activeImageIndex === 0;
+
+    useEffect(() => {
+        // Efeito inicial para garantir que a UI comece visível
+        if (uiRef.current) {
+            uiRef.current.style.opacity = '1';
+            uiRef.current.style.transition = 'opacity 0.3s ease';
+        }
+    }, []);
     
     return (
       <div 
@@ -204,88 +226,116 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         onClick={closeZoom}
         style={{ touchAction: 'none' }}
       >
-        <div className="flex justify-between items-center p-4 z-50 bg-white/80 backdrop-blur-sm absolute top-0 left-0 right-0">
-           <h2 className="text-lg font-bold text-slate-900 truncate pr-4">{product.name}</h2>
-           <button 
-            className="text-slate-800 p-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors shadow-sm"
+        {/* Botão Fechar FIXO - Fora do container que some */}
+        <button 
+            className="absolute top-4 right-4 z-[70] text-slate-800 p-2.5 rounded-full bg-white/90 backdrop-blur-sm shadow-md border border-slate-100 hover:bg-slate-100 transition-colors active:scale-95"
             onClick={closeZoom}
-          >
-            <X size={24} />
-          </button>
-        </div>
-        
-        <div 
-          className="flex-1 flex items-center justify-center relative w-full h-full overflow-hidden bg-white"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onDoubleClick={handleDoubleTap}
-          onClick={(e) => e.stopPropagation()}
         >
-          <img 
-            ref={imgRef}
-            src={currentImageSrc} 
-            alt={`${product.name} view`}
-            className={`max-w-full max-h-full object-contain will-change-transform px-4 ${isVenezaInitial ? 'scale-150' : ''}`}
-            draggable={false}
-            style={isVenezaInitial && transformRef.current.scale === 1 ? { transform: 'scale(1.5)' } : undefined}
-          />
-          {!showInfoImage && images.length > 1 && (
-            <>
-              <button onClick={prevImage} className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"><ChevronLeft size={24} /></button>
-              <button onClick={nextImage} className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"><ChevronRight size={24} /></button>
-            </>
-          )}
-        </div>
-        
-        <div className="bg-white border-t border-slate-100 p-4 pb-8 z-50 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
-          
-          {/* Botão Saber Mais / Voltar */}
-          {product.infoImage && (
-            <button 
-              onClick={toggleInfoImage}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm shadow-sm transition-all active:scale-95 ${
-                showInfoImage 
-                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
-                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
-              }`}
-            >
-              {showInfoImage ? (
-                <>
-                  <ImageIcon size={18} />
-                  Voltar para fotos
-                </>
-              ) : (
-                <>
-                  <Info size={18} />
-                  Saber mais
-                </>
-              )}
-            </button>
-          )}
+            <X size={24} />
+        </button>
 
-          {!showInfoImage && (
-            <>
-              <p className="text-xs text-slate-400 uppercase font-medium tracking-wider">
-                {transformRef.current.scale > 1 ? 'Toque duplo para resetar zoom' : `${activeImageIndex + 1} / ${images.length}`}
-              </p>
-              {images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto max-w-full px-2 no-scrollbar py-1">
-                  {images.map((img, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => changeImage(idx)}
-                      className={`relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
-                        activeImageIndex === idx ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
+        {/* Container de Interface que desaparece no Zoom */}
+        <div ref={uiRef} className="absolute inset-0 z-[65] pointer-events-none flex flex-col justify-between p-4">
+             {/* Título Flutuante (Sem barra) */}
+             <div className="mt-2 pointer-events-auto self-start">
+                 <h2 className="text-xl font-bold text-slate-900 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm inline-block">
+                     {product.name}
+                 </h2>
+             </div>
+
+             {/* Setas de Navegação */}
+             {!showInfoImage && images.length > 1 && (
+                 <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between px-4 pointer-events-auto">
+                    <button onClick={prevImage} className="bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 border border-slate-100"><ChevronLeft size={24} /></button>
+                    <button onClick={nextImage} className="bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 border border-slate-100"><ChevronRight size={24} /></button>
+                 </div>
+             )}
+
+             {/* Rodapé com Galeria e Botão Saber Mais */}
+             <div className="pointer-events-auto bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-slate-100 flex flex-col items-center gap-4 mt-auto">
+                 
+                 {/* Botão Saber Mais / Voltar */}
+                  {product.infoImage && (
+                    <button 
+                      onClick={toggleInfoImage}
+                      className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-semibold text-sm shadow-sm transition-all active:scale-95 ${
+                        showInfoImage 
+                          ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' 
+                          : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200'
                       }`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      {showInfoImage ? (
+                        <>
+                          <ImageIcon size={18} />
+                          Voltar para fotos
+                        </>
+                      ) : (
+                        <>
+                          <Info size={18} />
+                          Saber mais
+                        </>
+                      )}
                     </button>
-                  ))}
+                  )}
+
+                  {!showInfoImage && (
+                    <>
+                      <p className="text-xs text-slate-400 uppercase font-medium tracking-wider">
+                        {activeImageIndex + 1} / {images.length}
+                      </p>
+                      {images.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto max-w-full px-2 no-scrollbar py-1 w-full justify-center">
+                          {images.map((img, idx) => (
+                            <button
+                              key={idx}
+                              onClick={(e) => { e.stopPropagation(); changeImage(idx); }}
+                              className={`relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
+                                activeImageIndex === idx ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
+                              }`}
+                            >
+                              <img src={img} alt="" className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+             </div>
+        </div>
+        
+        {/* Área da Imagem */}
+        <div 
+          className="flex-1 w-full h-full bg-white"
+          onClick={(e) => e.stopPropagation()}
+        >
+            {showInfoImage ? (
+                // MODO SABER MAIS: Rolagem Vertical Nativa
+                <div className="w-full h-full overflow-y-auto p-4 flex justify-center bg-slate-50">
+                     <img 
+                        src={product.infoImage} 
+                        alt="Informações Técnicas"
+                        className="w-full h-auto max-w-2xl object-contain"
+                     />
                 </div>
-              )}
-            </>
-          )}
+            ) : (
+                // MODO ZOOM: Gestos e Canvas Travado
+                <div 
+                    className="w-full h-full flex items-center justify-center overflow-hidden"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onDoubleClick={handleDoubleTap}
+                >
+                  <img 
+                    ref={imgRef}
+                    src={currentImageSrc} 
+                    alt={`${product.name} view`}
+                    className={`max-w-full max-h-full object-contain will-change-transform px-4 ${isVenezaInitial ? 'scale-150' : ''}`}
+                    draggable={false}
+                    style={isVenezaInitial && transformRef.current.scale === 1 ? { transform: 'scale(1.5)' } : undefined}
+                  />
+                </div>
+            )}
         </div>
       </div>
     );
