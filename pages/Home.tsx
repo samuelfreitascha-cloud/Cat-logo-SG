@@ -9,6 +9,13 @@ import { HeroCarousel } from '../components/HeroCarousel';
 export const Home: React.FC = () => {
   const navigate = useNavigate();
   const [imgError, setImgError] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      navigate(`/products?q=${encodeURIComponent(searchTerm)}`);
+    }
+  };
 
   return (
     <div className="p-6 pb-24">
@@ -51,6 +58,9 @@ export const Home: React.FC = () => {
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={20} />
         <input 
           type="text" 
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={handleSearch}
           placeholder="Procurar cadeiras, espreguiçadeiras..." 
           className="w-full pl-12 pr-4 py-3 bg-slate-100 border-transparent focus:bg-white focus:border-primary focus:ring-primary rounded-xl text-slate-700 placeholder-slate-400 transition-all outline-none border-2"
         />
