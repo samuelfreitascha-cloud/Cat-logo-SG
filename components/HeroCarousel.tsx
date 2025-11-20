@@ -1,44 +1,44 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react';
 
-// Imagens de substituição de alta qualidade (Unsplash) que funcionam garantido.
-// Se você tiver os links DIRETOS (terminados em .jpg/.png), pode substituir aqui.
+// Links fornecidos pelo usuário
 const CAROUSEL_IMAGES = [
   {
     id: 1,
-    url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=2158&auto=format&fit=crop',
+    url: 'https://ibb.co/m5gKKTHL', 
     title: 'Promoção de Verão',
     subtitle: 'Até 30% OFF em cadeiras de praia!'
   },
   {
     id: 2,
-    url: 'https://images.unsplash.com/photo-1594026112284-02bb6f3352fe?q=80&w=2070&auto=format&fit=crop',
-    title: 'Conforto Premium',
-    subtitle: 'Novas poltronas para sua sala'
+    url: 'https://ibb.co/kgJzWxML',
+    title: 'Novos Modelos',
+    subtitle: 'Conforto e estilo'
   },
   {
     id: 3,
-    url: 'https://images.unsplash.com/photo-1519947486511-463999512756?q=80&w=2028&auto=format&fit=crop',
-    title: 'Design Moderno',
-    subtitle: 'Transforme seu ambiente'
+    url: 'https://ibb.co/4wbJw5SZ',
+    title: 'Design Exclusivo',
+    subtitle: 'Para sua casa'
   },
   {
     id: 4,
-    url: 'https://images.unsplash.com/photo-1505843490538-5133c6c7d0e1?q=80&w=2070&auto=format&fit=crop',
+    url: 'https://ibb.co/3yyr081G',
     title: 'Área Externa',
     subtitle: 'Perfeito para seu jardim'
   },
   {
     id: 5,
-    url: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?q=80&w=1974&auto=format&fit=crop',
-    title: 'Coleção Clássica',
-    subtitle: 'Elegância que nunca sai de moda'
+    url: 'https://ibb.co/zWqj6mVH',
+    title: 'Coleção Premium',
+    subtitle: 'Qualidade garantida'
   }
 ];
 
 export const HeroCarousel: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
 
   // Auto-play: Muda a imagem a cada 4 segundos
   useEffect(() => {
@@ -60,8 +60,12 @@ export const HeroCarousel: React.FC = () => {
     setCurrentIndex(index);
   };
 
+  const handleImageError = (index: number) => {
+    setImageErrors(prev => ({ ...prev, [index]: true }));
+  };
+
   return (
-    <div className="relative rounded-2xl overflow-hidden mb-8 shadow-xl shadow-slate-200/50 group h-48 md:h-64">
+    <div className="relative rounded-2xl overflow-hidden mb-8 shadow-xl shadow-slate-200/50 group h-48 md:h-64 bg-slate-200">
       {/* Imagens */}
       <div className="w-full h-full relative">
         {CAROUSEL_IMAGES.map((image, index) => (
@@ -71,13 +75,27 @@ export const HeroCarousel: React.FC = () => {
               index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
             }`}
           >
-            <img
-              src={image.url}
-              alt={image.title}
-              className="w-full h-full object-cover"
-            />
-            {/* Gradiente e Texto */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end">
+            {!imageErrors[index] ? (
+              <img
+                src={image.url}
+                alt={image.title}
+                className="w-full h-full object-cover"
+                onError={() => handleImageError(index)}
+              />
+            ) : (
+              // Fallback caso a imagem do ibb.co não carregue diretamente
+              <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white p-4 text-center">
+                <ImageOff size={48} className="mb-2 opacity-50" />
+                <p className="font-bold text-sm">Não foi possível carregar a imagem</p>
+                <p className="text-xs text-slate-400 mt-1">O link precisa ser direto (.jpg/.png)</p>
+                <a href={image.url} target="_blank" rel="noreferrer" className="text-xs text-blue-400 underline mt-2">
+                  Ver Imagem Original
+                </a>
+              </div>
+            )}
+            
+            {/* Gradiente e Texto (apenas se não deu erro ou se quiser mostrar sobre o erro) */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-5 flex flex-col justify-end pointer-events-none">
               <h2 className="text-white text-xl font-bold transform translate-y-0 transition-transform duration-500">
                 {image.title}
               </h2>
