@@ -155,15 +155,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   // --- Renderização dos Ícones de Ação ---
   const renderActionButton = (isList: boolean) => {
+    // Se for WhatsApp, usa Verde.
+    // Se for outro link externo (Mercado Livre) ou interno, usa Primary (Ciano/Esverdeado).
     const buttonClasses = isList 
       ? `p-2 rounded-full transition-colors ${
-          product.externalUrl 
-            ? (isWhatsApp ? 'bg-green-100 text-green-700 hover:bg-green-600 hover:text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white')
+          product.externalUrl && isWhatsApp
+            ? 'bg-green-100 text-green-700 hover:bg-green-600 hover:text-white' 
             : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
         }`
       : `p-2 rounded-lg text-white transition-colors shadow-md active:scale-95 ${
-          product.externalUrl
-            ? (isWhatsApp ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200')
+          product.externalUrl && isWhatsApp
+            ? 'bg-green-600 hover:bg-green-700 shadow-green-200' 
             : 'bg-primary hover:bg-primary-dark shadow-cyan-200'
         }`;
 
