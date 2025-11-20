@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, X, ZoomIn, ChevronLeft, ChevronRight, ShoppingBag, ExternalLink } from 'lucide-react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 
@@ -22,6 +22,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   // Determina as imagens a serem usadas (Galeria ou Imagem única)
   const images = product.gallery && product.gallery.length > 0 ? product.gallery : [product.image];
+
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (product.externalUrl) {
+      // Se tiver link externo (ex: Mercado Livre), abre em nova aba
+      window.open(product.externalUrl, '_blank');
+    } else {
+      // Caso contrário, adiciona ao carrinho interno
+      addToCart(product);
+    }
+  };
 
   // --- Lógica de Gestos ---
 
@@ -247,10 +259,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             </p>
           </div>
           <button 
-            onClick={() => addToCart(product)}
-            className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors"
+            onClick={handleActionClick}
+            className={`p-2 rounded-full transition-colors ${
+              product.externalUrl 
+                ? 'bg-green-100 text-green-700 hover:bg-green-600 hover:text-white' 
+                : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+            }`}
           >
-            <Plus size={20} />
+            {product.externalUrl ? <ShoppingBag size={20} /> : <Plus size={20} />}
           </button>
         </div>
         {isZoomOpen && <ZoomModal />}
@@ -289,13 +305,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
               R$ {product.price.toFixed(2).replace('.', ',')}
             </span>
             <button 
-              onClick={(e) => {
-                  e.stopPropagation();
-                  addToCart(product);
-              }}
-              className="p-2 bg-blue-500 rounded-lg text-white hover:bg-blue-600 transition-colors shadow-md shadow-blue-200 active:scale-95"
+              onClick={handleActionClick}
+              className={`p-2 rounded-lg text-white transition-colors shadow-md active:scale-95 ${
+                product.externalUrl
+                  ? 'bg-green-600 hover:bg-green-700 shadow-green-200'
+                  : 'bg-blue-500 hover:bg-blue-600 shadow-blue-200'
+              }`}
             >
-              <Plus size={16} />
+              {product.externalUrl ? <ShoppingBag size={16} /> : <Plus size={16} />}
             </button>
           </div>
         </div>

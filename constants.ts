@@ -17,6 +17,8 @@ export const PRODUCTS: Product[] = [
     description: 'Alumínio e Tela sling',
     price: 249.90,
     image: 'https://i.ibb.co/8DsSfthQ/image.png',
+    // Link externo adicionado
+    externalUrl: 'https://produto.mercadolivre.com.br/MLB-4075779991-cadeira-de-praia-reclinavel-fixa-dura-mais-resistente-jardim-_JM',
     // Galeria adicionada conforme solicitado
     gallery: [
       'https://i.ibb.co/8DsSfthQ/image.png',

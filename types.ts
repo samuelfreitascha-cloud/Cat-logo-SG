@@ -9,6 +9,7 @@ export interface Product {
   rating?: number;
   category?: string;
   color?: string;
+  externalUrl?: string; // Link externo para compra (ex: Mercado Livre)
 }
 
 export interface CartItem extends Product {
