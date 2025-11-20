@@ -18,7 +18,7 @@ export const PRODUCTS: Product[] = [
     description: 'Alumínio e Tela sling',
     price: 249.90,
     // Imagem PNG com fundo transparente
-    image: 'https://i.ibb.co/bRjQxDVm/cadeira-2-5.png',
+    image: 'https://i.ibb.co/8DsSfthQ/image.png',
     category: 'Praia',
     color: 'Preto'
   },
