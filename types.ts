@@ -1,9 +1,11 @@
+
 export interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
   image: string;
+  gallery?: string[]; // Array opcional de URLs para galeria
   rating?: number;
   category?: string;
   color?: string;

@@ -7,7 +7,6 @@ export const PRODUCTS: Product[] = [
     name: 'Cadeira Veneza',
     description: 'Madeira Tauari',
     price: 189.90,
-    // Imagem corrigida para link direto funcional
     image: 'https://images.unsplash.com/photo-1594026112284-02bb6f3352fe?q=80&w=2070&auto=format&fit=crop',
     category: 'Praia',
     color: 'Azul Náutico'
@@ -17,8 +16,16 @@ export const PRODUCTS: Product[] = [
     name: 'Cadeira Reclinável DuraPlus',
     description: 'Alumínio e Tela sling',
     price: 249.90,
-    // Imagem PNG com fundo transparente
     image: 'https://i.ibb.co/8DsSfthQ/image.png',
+    // Galeria adicionada conforme solicitado
+    gallery: [
+      'https://i.ibb.co/8DsSfthQ/image.png',
+      'https://i.ibb.co/ZzThrWG0/1.png',
+      'https://i.ibb.co/TxbtzrzR/2.png',
+      'https://i.ibb.co/vx8shnGs/3.png',
+      'https://i.ibb.co/zVfw9BWH/4.png',
+      'https://i.ibb.co/twQ8DpR2/cadeira-2-1.png'
+    ],
     category: 'Praia',
     color: 'Preto'
   },
@@ -27,7 +34,6 @@ export const PRODUCTS: Product[] = [
     name: 'Cadeira Eames',
     description: 'Polipropileno',
     price: 159.00,
-    // Imagem corrigida para link direto funcional
     image: 'https://images.unsplash.com/photo-1519947486511-463999512756?q=80&w=2028&auto=format&fit=crop',
     category: 'Casa',
     color: 'Branco'
@@ -37,7 +43,6 @@ export const PRODUCTS: Product[] = [
     name: 'Cadeira Clássica',
     description: 'Madeira Maciça',
     price: 299.00,
-    // Imagem corrigida para link direto funcional
     image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?q=80&w=1974&auto=format&fit=crop',
     category: 'Jardim',
     color: 'Amarelo'

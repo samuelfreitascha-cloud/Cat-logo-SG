@@ -1,6 +1,6 @@
 
-import React, { useState, useRef } from 'react';
-import { Plus, X, ZoomIn } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Plus, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product } from '../types';
 import { useCart } from '../context/CartContext';
 
@@ -12,12 +12,16 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'list' }) => {
   const { addToCart } = useCart();
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   
   // Refs para animação direta (High Performance)
   const imgRef = useRef<HTMLImageElement>(null);
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
+
+  // Determina as imagens a serem usadas (Galeria ou Imagem única)
+  const images = product.gallery && product.gallery.length > 0 ? product.gallery : [product.image];
 
   // --- Lógica de Gestos ---
 
@@ -50,13 +54,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
+    // Importante: Não previne default se estiver com zoom 1 (para permitir scroll de thumbnails se necessário, ou gestos do sistema)
+    // Mas aqui estamos em modal fixed, então previnir default é seguro para evitar scroll da página de fundo
+    e.preventDefault(); 
+    
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
       const dist = getDistance(e.touches);
       const scaleFactor = dist / lastTouchRef.current.dist;
-      // Limitado a 3x para qualidade
       const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 3);
       transformRef.current.scale = newScale;
       updateImageTransform();
@@ -99,6 +105,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const openZoom = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setActiveImageIndex(0); // Resetar para primeira imagem ao abrir
     setIsZoomOpen(true);
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
@@ -109,22 +116,52 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
-  // Conteúdo do Modal de Zoom (Fundo Branco, Performance Otimizada)
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (activeImageIndex < images.length - 1) {
+      changeImage(activeImageIndex + 1);
+    } else {
+      changeImage(0); // Loop
+    }
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (activeImageIndex > 0) {
+      changeImage(activeImageIndex - 1);
+    } else {
+      changeImage(images.length - 1); // Loop
+    }
+  };
+
+  const changeImage = (index: number) => {
+    // Reset zoom when changing image
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    updateImageTransform();
+    setActiveImageIndex(index);
+  };
+
+  // Conteúdo do Modal de Zoom (Galeria)
   const ZoomModal = () => (
     <div 
-      className="fixed inset-0 z-[60] bg-white flex items-center justify-center animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] bg-white flex flex-col animate-in fade-in duration-200"
       onClick={closeZoom}
       style={{ touchAction: 'none' }}
     >
-      <button 
-        className="absolute top-4 right-4 text-slate-800 p-2 rounded-full bg-slate-100 transition-colors z-50 shadow-md"
-        onClick={closeZoom}
-      >
-        <X size={32} />
-      </button>
+      {/* Header do Modal */}
+      <div className="flex justify-between items-center p-4 z-50 bg-white/80 backdrop-blur-sm absolute top-0 left-0 right-0">
+         <h2 className="text-lg font-bold text-slate-900 truncate pr-4">{product.name}</h2>
+         <button 
+          className="text-slate-800 p-2 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors shadow-sm"
+          onClick={closeZoom}
+        >
+          <X size={24} />
+        </button>
+      </div>
       
+      {/* Área da Imagem Principal */}
       <div 
-        className="w-full h-full flex items-center justify-center"
+        className="flex-1 flex items-center justify-center relative w-full h-full overflow-hidden bg-white"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -133,18 +170,57 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
       >
         <img 
           ref={imgRef}
-          src={product.image} 
-          alt={product.name}
-          className="max-w-full max-h-full object-contain will-change-transform"
+          src={images[activeImageIndex]} 
+          alt={`${product.name} view ${activeImageIndex + 1}`}
+          className="max-w-full max-h-full object-contain will-change-transform px-4"
           draggable={false}
         />
+
+        {/* Setas de Navegação (se houver mais de uma imagem) */}
+        {images.length > 1 && (
+          <>
+            <button 
+              onClick={prevImage}
+              className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <button 
+              onClick={nextImage}
+              className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 p-3 rounded-full shadow-lg text-slate-800 hover:bg-white active:scale-95 transition-all border border-slate-100 z-40"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </>
+        )}
       </div>
       
-      <div className="absolute bottom-8 left-0 right-0 text-center text-slate-500 pointer-events-none">
-        <h2 className="text-xl font-bold mb-1 text-slate-900">{product.name}</h2>
-        <p className="text-sm">
-           {transformRef.current.scale > 1 ? 'Toque duplo para resetar' : 'Faça o gesto de pinça para zoom (máx 3x)'}
+      {/* Footer com Miniaturas */}
+      <div 
+        className="bg-white border-t border-slate-100 p-4 pb-8 z-50 flex flex-col items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-xs text-slate-400 mb-3 uppercase font-medium tracking-wider">
+          {transformRef.current.scale > 1 ? 'Toque duplo para resetar zoom' : `${activeImageIndex + 1} / ${images.length}`}
         </p>
+        
+        {images.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto max-w-full px-2 no-scrollbar py-1">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => changeImage(idx)}
+                className={`relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
+                  activeImageIndex === idx 
+                    ? 'border-primary ring-2 ring-primary/20' 
+                    : 'border-transparent opacity-60 hover:opacity-100'
+                }`}
+              >
+                <img src={img} alt="" className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -198,11 +274,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/5 transition-colors">
              <ZoomIn className="text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 p-1.5 rounded-full shadow-sm" size={28} />
           </div>
-          <button className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-full backdrop-blur-sm hover:bg-white text-slate-400 hover:text-red-500 transition-colors shadow-sm z-10">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-          </button>
+          {/* Ícone indicando galeria se houver mais de uma foto */}
+          {images.length > 1 && (
+            <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded flex items-center">
+              <span className="mr-1 font-bold">{images.length}</span> fotos
+            </div>
+          )}
         </div>
         <div className="p-3 flex flex-col flex-grow">
           <h3 className="font-semibold text-sm text-slate-800 truncate">{product.name}</h3>
