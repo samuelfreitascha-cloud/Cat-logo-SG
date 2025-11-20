@@ -86,8 +86,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (showInfoImage) return; // Permite scroll nativo na tela de info
-
+    // REMOVIDO: if (showInfoImage) return; -> Agora permite zoom na tela de info também
     e.preventDefault(); 
     
     if (!lastTouchRef.current) return;
@@ -303,39 +302,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
              </div>
         </div>
         
-        {/* Área da Imagem */}
+        {/* Área da Imagem - UNIFICADA: Mesmo container para ambos os modos */}
         <div 
-          className="flex-1 w-full h-full bg-white"
+          className="flex-1 w-full h-full bg-white overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-            {showInfoImage ? (
-                // MODO SABER MAIS: Rolagem Vertical Nativa
-                <div className="w-full h-full overflow-y-auto p-4 flex justify-center bg-slate-50">
-                     <img 
-                        src={product.infoImage} 
-                        alt="Informações Técnicas"
-                        className="w-full h-auto max-w-2xl object-contain"
-                     />
-                </div>
-            ) : (
-                // MODO ZOOM: Gestos e Canvas Travado
-                <div 
-                    className="w-full h-full flex items-center justify-center overflow-hidden"
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    onDoubleClick={handleDoubleTap}
-                >
-                  <img 
-                    ref={imgRef}
-                    src={currentImageSrc} 
-                    alt={`${product.name} view`}
-                    className={`max-w-full max-h-full object-contain will-change-transform px-4 ${isVenezaInitial ? 'scale-150' : ''}`}
-                    draggable={false}
-                    style={isVenezaInitial && transformRef.current.scale === 1 ? { transform: 'scale(1.5)' } : undefined}
-                  />
-                </div>
-            )}
+            <div 
+                className="w-full h-full flex items-center justify-center"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onDoubleClick={handleDoubleTap}
+            >
+              <img 
+                ref={imgRef}
+                src={currentImageSrc} 
+                alt={showInfoImage ? "Detalhes Técnicos" : product.name}
+                className={`max-w-full max-h-full object-contain will-change-transform px-4 ${isVenezaInitial ? 'scale-150' : ''}`}
+                draggable={false}
+                style={isVenezaInitial && transformRef.current.scale === 1 ? { transform: 'scale(1.5)' } : undefined}
+              />
+            </div>
         </div>
       </div>
     );
