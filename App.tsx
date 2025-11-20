@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { BottomNav } from './components/BottomNav';
 import { Home } from './pages/Home';
@@ -10,6 +10,7 @@ import { Checkout } from './pages/Checkout';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
+  // Esconder a navegação inferior apenas no checkout
   const hideNavRoutes = ['/checkout'];
   const showNav = !hideNavRoutes.includes(location.pathname);
 
