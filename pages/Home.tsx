@@ -57,8 +57,9 @@ export const Home: React.FC = () => {
 
       {/* Hero Banner */}
       <div className="relative rounded-2xl overflow-hidden mb-8 shadow-xl shadow-slate-200/50 group cursor-pointer">
+        {/* IMAGEM DO BANNER ATUALIZADA */}
         <img 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBT0RfRYF05rlnETMc5e_47gHgxZfkIdUMuJQ9VhXZq0_zEZjCN6oWiUkGpYlE1EJJFxvq4XnjwVwQQmpdqIbGMDPUqHVg3etMFOKnpdBnhEI8AJSDnQY6OjuIsYsPAb2jjfT7aWSL_YUAqI83bNdHmAPTbx6ESazzGKrr_Hfc2x0bToTVKwHIxJaoQlnJJ6He7CBUJYnRKkdnmf_5LE7pUD5L3QAPgOZDRX-iCpK609-DgxUTEDFb0opyJV8FvXB8onjFoZsWhGFE" 
+          src="https://ibb.co/m5gKKTHL" 
           alt="Promoção de Verão" 
           className="w-full h-48 object-cover transform group-hover:scale-105 transition-transform duration-700"
         />
