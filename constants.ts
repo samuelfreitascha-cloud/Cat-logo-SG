@@ -17,8 +17,8 @@ export const PRODUCTS: Product[] = [
     name: 'Cadeira Reclinável DuraPlus',
     description: 'Alumínio e Tela sling',
     price: 249.90,
-    // Imagem corrigida para link direto funcional
-    image: 'https://images.unsplash.com/photo-1506326426992-32bfbf694963?q=80&w=1974&auto=format&fit=crop',
+    // Imagem PNG com fundo transparente
+    image: 'https://i.ibb.co/bRjQxDVm/cadeira-2-5.png',
     category: 'Praia',
     color: 'Preto'
   },
