@@ -1,19 +1,20 @@
+
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Grid, Heart, User, ShoppingCart } from 'lucide-react';
-import { useCart } from '../context/CartContext';
+import { Home, Grid, User, FileText } from 'lucide-react';
 
 export const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { items } = useCart();
-
-  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
 
   const isActive = (path: string) => location.pathname === path;
 
   // Dynamic color based on page to match screenshots, or default to primary
   const getActiveColorClass = () => 'text-primary';
+
+  const openPdfCatalog = () => {
+    window.open('https://drive.google.com/file/d/1l10mJMnb9s5-v8_g10DmWOzKSzuF4Kt_/view?usp=sharing', '_blank');
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-md border-t border-slate-200 z-50">
@@ -35,16 +36,11 @@ export const BottomNav: React.FC = () => {
         </button>
 
         <button 
-          onClick={() => navigate('/cart')}
-          className={`flex flex-col items-center relative ${isActive('/cart') ? getActiveColorClass() : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={openPdfCatalog}
+          className="flex flex-col items-center text-slate-400 hover:text-red-600 transition-colors"
         >
-          <ShoppingCart size={24} strokeWidth={isActive('/cart') ? 2.5 : 2} />
-          <span className="text-[10px] font-medium mt-1">Carrinho</span>
-          {totalItems > 0 && (
-            <span className="absolute top-0 right-2 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-              {totalItems}
-            </span>
-          )}
+          <FileText size={24} strokeWidth={2} />
+          <span className="text-[10px] font-medium mt-1">Catálogo</span>
         </button>
         
         <button 
