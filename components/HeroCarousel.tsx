@@ -196,6 +196,11 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    // IMPORTANTE: Mata qualquer transição anterior IMEDIATAMENTE
+    if (imgRef.current) {
+        imgRef.current.style.transition = 'none';
+    }
+
     // Registra dados para detecção de TAP
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
