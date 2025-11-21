@@ -25,6 +25,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
   const rafRef = useRef<number | null>(null); // Request Animation Frame
+  const isAnimatingRef = useRef(false); // Trava para evitar toques durante animação
 
   // Cache de Layout para evitar reflow (Layout Thrashing)
   const layoutCacheRef = useRef({
@@ -56,6 +57,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
       addToCart(product);
     }
   };
+
+  // SEGURANÇA CONTRA TRAVAMENTO:
+  // Sempre que a imagem muda, reseta transforms
+  useEffect(() => {
+    if (isZoomOpen) {
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        if (imgRef.current) {
+            imgRef.current.style.transition = 'none';
+            imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
+        }
+        setTimeout(() => { isAnimatingRef.current = false; }, 50);
+    }
+  }, [activeImageIndex, showInfoImage, isZoomOpen]);
 
   // --- Lógica de Gestos ---
 
@@ -90,6 +104,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isAnimatingRef.current) return;
+
     // IMPORTANTE: Mata qualquer transição anterior IMEDIATAMENTE
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
@@ -128,6 +144,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
+    if (isAnimatingRef.current) return;
     // Não faz nada se for imagem única e não for Saber Mais
     if (images.length <= 1 && !showInfoImage) {
         // Reset visual apenas
@@ -140,6 +157,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         return;
     }
     
+    isAnimatingRef.current = true;
+
     const screenWidth = window.innerWidth;
     const exitX = direction === 'next' ? -screenWidth : screenWidth;
 
@@ -157,17 +176,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             else setActiveImageIndex(images.length - 1);
         }
 
-        transformRef.current = { x: 0, y: 0, scale: 1 };
+        // useEffect cuidará do reset visual
         setZoomMode(false);
-        if (imgRef.current) {
-           imgRef.current.style.transition = "none";
-           updateImageTransform();
-        }
     }, 200);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.cancelable) e.preventDefault();
+    if (isAnimatingRef.current) return;
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
@@ -226,6 +242,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (isAnimatingRef.current) return;
+    
     const timeDiff = Date.now() - touchStartTimeRef.current;
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(
@@ -303,9 +321,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     e.stopPropagation();
     if (showInfoImage) return; 
     if (activeImageIndex < images.length - 1) {
-      changeImage(activeImageIndex + 1);
+      setActiveImageIndex(activeImageIndex + 1);
     } else {
-      changeImage(0);
+      setActiveImageIndex(0);
     }
   };
 
@@ -313,16 +331,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     e.stopPropagation();
     if (showInfoImage) return; 
     if (activeImageIndex > 0) {
-      changeImage(activeImageIndex - 1);
+      setActiveImageIndex(activeImageIndex - 1);
     } else {
-      changeImage(images.length - 1);
+      setActiveImageIndex(images.length - 1);
     }
-  };
-
-  const changeImage = (index: number) => {
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    updateImageTransform();
-    setActiveImageIndex(index);
   };
 
   const toggleInfoImage = (e: React.MouseEvent) => {
@@ -446,7 +458,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                           {images.map((img, idx) => (
                             <button
                               key={idx}
-                              onClick={(e) => { e.stopPropagation(); changeImage(idx); }}
+                              onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); }}
                               className={`relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
                                 activeImageIndex === idx ? 'border-primary ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
                               }`}

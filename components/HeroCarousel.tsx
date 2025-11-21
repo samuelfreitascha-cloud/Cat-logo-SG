@@ -49,6 +49,7 @@ export const HeroCarousel: React.FC = () => {
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
   const rafRef = useRef<number | null>(null); // Request Animation Frame
+  const isAnimatingRef = useRef(false); // Trava para evitar toques durante animação
 
   // Cache de Layout para evitar reflow (Layout Thrashing)
   const layoutCacheRef = useRef({
@@ -76,6 +77,20 @@ export const HeroCarousel: React.FC = () => {
     }, 5000); 
     return () => clearInterval(interval);
   }, [currentIndex, imageErrors, isZoomOpen]);
+
+  // SEGURANÇA CONTRA TRAVAMENTO:
+  // Sempre que o índice mudar, forçamos o reset das transformações.
+  useEffect(() => {
+    if (isZoomOpen) {
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        if (imgRef.current) {
+            imgRef.current.style.transition = 'none';
+            imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
+        }
+        // Libera a animação
+        setTimeout(() => { isAnimatingRef.current = false; }, 50);
+    }
+  }, [currentIndex, isZoomOpen]);
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
@@ -117,6 +132,9 @@ export const HeroCarousel: React.FC = () => {
 
   // Funções de navegação dentro do Modal (Agora acionadas por GESTOS)
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
+
     const screenWidth = window.innerWidth;
     const exitX = direction === 'next' ? -screenWidth : screenWidth;
 
@@ -133,16 +151,9 @@ export const HeroCarousel: React.FC = () => {
         } else {
             setCurrentIndex((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length);
         }
-
-        // Reset físico
-        transformRef.current = { x: 0, y: 0, scale: 1 };
+        
+        // O useEffect cuidará do reset visual
         setZoomMode(false); 
-
-        // 3. Remove transição para reposicionar instantaneamente no centro (nova imagem)
-        if (imgRef.current) {
-           imgRef.current.style.transition = "none";
-           updateImageTransform();
-        }
     }, 200);
   };
 
@@ -196,6 +207,8 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (isAnimatingRef.current) return;
+
     // IMPORTANTE: Mata qualquer transição anterior IMEDIATAMENTE
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
@@ -235,6 +248,7 @@ export const HeroCarousel: React.FC = () => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.cancelable) e.preventDefault();
+    if (isAnimatingRef.current) return;
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
@@ -287,6 +301,8 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    if (isAnimatingRef.current) return;
+    
     const timeDiff = Date.now() - touchStartTimeRef.current;
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(
