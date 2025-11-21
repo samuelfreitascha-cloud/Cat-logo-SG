@@ -20,6 +20,7 @@ export const PRODUCTS: Product[] = [
     price: 260.00,
     image: 'https://i.ibb.co/8DsSfthQ/image.png',
     externalUrl: 'https://produto.mercadolivre.com.br/MLB-4075779991-cadeira-de-praia-reclinavel-fixa-dura-mais-resistente-jardim-_JM',
+    infoImage: 'https://i.ibb.co/svqtpQ6X/Prancheta-4-c-pia-12.png',
     gallery: [
       'https://i.ibb.co/8DsSfthQ/image.png',
       'https://i.ibb.co/ZzThrWG0/1.png',
