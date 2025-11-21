@@ -23,22 +23,36 @@ export const Home: React.FC = () => {
       <header className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           {/* 
-            Lógica de Logo: Tenta carregar a imagem. 
-            Se der erro (bloqueio do Google), mostra o ícone de fallback.
+            Lógica de Logo: 
+            Usa a própria imagem duplicada com animate-ping para criar a silhueta pulsante.
+            Isso garante que a animação tenha o formato exato do guarda-chuva.
           */}
-          {!imgError ? (
-            <img 
-              src="https://drive.google.com/thumbnail?id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh&sz=s200" 
-              alt="Logo Catálogo Sungap" 
-              className="w-12 h-12 object-contain"
-              onError={() => setImgError(true)}
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Umbrella className="text-primary" size={28} />
-            </div>
-          )}
+          <div className="relative w-12 h-12 flex items-center justify-center">
+            {!imgError ? (
+              <>
+                {/* Camada de Animação (Silhueta) */}
+                <img 
+                  src="https://drive.google.com/thumbnail?id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh&sz=s200" 
+                  alt="" 
+                  className="absolute inset-0 w-full h-full object-contain animate-ping opacity-30"
+                  referrerPolicy="no-referrer"
+                />
+                {/* Imagem Principal */}
+                <img 
+                  src="https://drive.google.com/thumbnail?id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh&sz=s200" 
+                  alt="Logo Catálogo Sungap" 
+                  className="relative z-10 w-full h-full object-contain"
+                  onError={() => setImgError(true)}
+                  referrerPolicy="no-referrer"
+                />
+              </>
+            ) : (
+              <div className="relative z-10 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <span className="absolute inset-0 rounded-full bg-slate-300 animate-ping opacity-75"></span>
+                <Umbrella className="text-primary relative z-10" size={28} />
+              </div>
+            )}
+          </div>
           <div>
             <h1 className="text-xl font-bold text-slate-800 leading-tight">Catálogo Sungap</h1>
             <p className="text-xs text-slate-500">Encontre a sombra perfeita</p>
