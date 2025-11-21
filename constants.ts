@@ -34,21 +34,47 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '3',
-    name: 'Cadeira Eames',
-    description: 'Polipropileno',
-    price: 159.00,
-    image: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?q=80&w=2070&auto=format&fit=crop',
-    category: 'Casa',
-    color: 'Branco',
+    name: 'Guarda-Sol Bagum 1,60m',
+    description: 'Proteção UV e Haste Alumínio',
+    price: 159.90,
+    image: 'https://images.unsplash.com/photo-1527610267748-75286c579ea5?q=80&w=1935&auto=format&fit=crop',
+    category: 'Praia',
+    color: 'Azul Royal',
+    externalUrl: 'https://wa.me/5511930364088?text=Olá, gostaria de um orçamento para o Guarda-Sol Bagum 1,60m',
+    infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder (pode substituir depois)
   },
   {
     id: '4',
-    name: 'Cadeira Clássica',
-    description: 'Madeira Maciça',
-    price: 299.00,
-    image: 'https://images.unsplash.com/photo-1503602642458-232111445840?q=80&w=2070&auto=format&fit=crop',
-    category: 'Casa',
-    color: 'Amarelo',
+    name: 'Ombrelone Madeira 2,40m',
+    description: 'Cobertura Premium para Jardim',
+    price: 589.00,
+    image: 'https://images.unsplash.com/photo-1597423244036-ef5020e83f3c?q=80&w=1974&auto=format&fit=crop',
+    category: 'Praia',
+    color: 'Natural',
+    externalUrl: 'https://wa.me/5511930364088?text=Olá, gostaria de um orçamento para o Ombrelone de Madeira 2,40m',
+    infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
+  },
+  {
+    id: '5',
+    name: 'Guarda-Sol Articulado',
+    description: 'Alumínio com inclinação',
+    price: 210.00,
+    image: 'https://images.unsplash.com/photo-1535262412227-85541e910204?q=80&w=2069&auto=format&fit=crop',
+    category: 'Praia',
+    color: 'Listrado',
+    externalUrl: 'https://wa.me/5511930364088?text=Olá, gostaria de um orçamento para o Guarda-Sol Articulado',
+    infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
+  },
+  {
+    id: '6',
+    name: 'Base para Guarda-Sol',
+    description: 'Suporte resistente de concreto/PVC',
+    price: 89.90,
+    image: 'https://images.unsplash.com/photo-1622396090075-ab49e6223992?q=80&w=2071&auto=format&fit=crop',
+    category: 'Praia',
+    color: 'Branco',
+    externalUrl: 'https://wa.me/5511930364088?text=Olá, gostaria de um orçamento para a Base de Guarda-Sol',
+    infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
   }
 ];
 

@@ -41,7 +41,7 @@ export const Home: React.FC = () => {
           )}
           <div>
             <h1 className="text-xl font-bold text-slate-800 leading-tight">Catálogo Sungap</h1>
-            <p className="text-xs text-slate-500">Encontre o assento perfeito</p>
+            <p className="text-xs text-slate-500">Encontre a sombra perfeita</p>
           </div>
         </div>
         <button className="relative p-2 rounded-full hover:bg-slate-100 transition-colors">
