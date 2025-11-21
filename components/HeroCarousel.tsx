@@ -105,6 +105,36 @@ export const HeroCarousel: React.FC = () => {
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
+  // Funções de navegação dentro do Modal
+  const changeModalSlide = (newIndex: number) => {
+    // Reset zoom
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    setZoomMode(false); // Garante que a UI volte se trocar de foto
+    
+    // Animação de reset visual
+    if (imgRef.current) {
+       imgRef.current.style.transition = "transform 0.3s ease-out";
+       updateImageTransform();
+       // Remove transição após resetar
+       setTimeout(() => { 
+         if (imgRef.current) imgRef.current.style.transition = "none"; 
+       }, 300);
+    }
+    setCurrentIndex(newIndex);
+  };
+
+  const nextModalSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = (currentIndex + 1) % CAROUSEL_IMAGES.length;
+    changeModalSlide(next);
+  };
+
+  const prevModalSlide = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const prev = (currentIndex - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length;
+    changeModalSlide(prev);
+  };
+
   // Alterna modo zoom
   const performToggleZoom = () => {
       if (zoomMode) {
@@ -135,8 +165,10 @@ export const HeroCarousel: React.FC = () => {
   useEffect(() => {
       if (uiRef.current) {
         const opacity = zoomMode ? '0' : '1';
+        const pointerEvents = zoomMode ? 'none' : 'auto';
         if (uiRef.current.style.opacity !== opacity) {
             uiRef.current.style.opacity = opacity;
+            uiRef.current.style.pointerEvents = pointerEvents;
             uiRef.current.style.transition = 'opacity 0.2s ease-out';
         }
       }
@@ -315,7 +347,7 @@ export const HeroCarousel: React.FC = () => {
           })}
         </div>
 
-        {/* Navegação */}
+        {/* Navegação Principal */}
         {CAROUSEL_IMAGES.length > 1 && (
           <>
             <button
@@ -373,11 +405,46 @@ export const HeroCarousel: React.FC = () => {
             />
           </div>
           
-          <div ref={uiRef} className="absolute bottom-8 left-0 right-0 text-center text-slate-500 pointer-events-none transition-opacity duration-200">
-            <h2 className="text-xl font-bold mb-1 text-slate-900">{CAROUSEL_IMAGES[currentIndex].title}</h2>
-            <p className="text-sm">
-               Toque na imagem para habilitar o zoom
-            </p>
+          {/* UI Control: Títulos e Navegação Manual (Desaparece no Zoom) */}
+          <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
+             {/* Área Superior (Vazia para não cobrir botão fechar) */}
+             <div></div>
+
+             {/* Setas de Navegação do Modal */}
+             <div className="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-auto">
+                 <button 
+                    onClick={prevModalSlide} 
+                    className="bg-white/80 hover:bg-white text-slate-800 p-3 rounded-full shadow-lg backdrop-blur-sm active:scale-95 border border-slate-100"
+                 >
+                    <ChevronLeft size={24} />
+                 </button>
+             </div>
+             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-auto">
+                 <button 
+                    onClick={nextModalSlide} 
+                    className="bg-white/80 hover:bg-white text-slate-800 p-3 rounded-full shadow-lg backdrop-blur-sm active:scale-95 border border-slate-100"
+                 >
+                    <ChevronRight size={24} />
+                 </button>
+             </div>
+
+             {/* Rodapé com Título e Dots */}
+             <div className="text-center text-slate-500 pointer-events-auto bg-white/90 backdrop-blur-md mx-6 p-4 rounded-2xl shadow-sm border border-slate-100">
+                <h2 className="text-xl font-bold mb-1 text-slate-900">{CAROUSEL_IMAGES[currentIndex].title}</h2>
+                <p className="text-sm mb-3">
+                   {CAROUSEL_IMAGES[currentIndex].subtitle}
+                </p>
+                <div className="flex justify-center gap-2">
+                   {CAROUSEL_IMAGES.map((_, idx) => (
+                       <div 
+                          key={idx}
+                          className={`h-1.5 rounded-full transition-all duration-300 ${
+                              idx === currentIndex ? 'w-6 bg-primary' : 'w-2 bg-slate-300'
+                          }`}
+                       />
+                   ))}
+                </div>
+             </div>
           </div>
         </div>
       )}
