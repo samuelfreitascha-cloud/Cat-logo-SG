@@ -24,6 +24,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
+  const rafRef = useRef<number | null>(null); // Request Animation Frame
+
+  // Cache de Layout para evitar reflow (Layout Thrashing)
+  const layoutCacheRef = useRef({
+    imgWidth: 0,
+    imgHeight: 0,
+    viewportWidth: 0,
+    viewportHeight: 0
+  });
 
   // Refs para detecção de TAP (Clique rápido)
   const touchStartTimeRef = useRef(0);
@@ -51,11 +60,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   // --- Lógica de Gestos ---
 
   const updateImageTransform = () => {
-    // Atualiza a imagem
-    if (imgRef.current) {
-      const { x, y, scale } = transformRef.current;
-      imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
-    }
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      if (imgRef.current) {
+        const { x, y, scale } = transformRef.current;
+        imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+      }
+    });
   };
 
   // Atualiza a UI baseada no MODO (zoomMode) e não na escala
@@ -82,6 +93,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     // Registra dados para detecção de TAP
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
+
+    // CACHE DE LAYOUT: Mede tudo agora para não medir durante o movimento
+    if (imgRef.current) {
+        layoutCacheRef.current = {
+            imgWidth: imgRef.current.offsetWidth,
+            imgHeight: imgRef.current.offsetHeight,
+            viewportWidth: window.innerWidth,
+            viewportHeight: window.innerHeight
+        };
+    }
 
     // Se detectar 2 dedos, ativa o zoomMode automaticamente e inicia o cálculo
     if (e.touches.length === 2) {
@@ -121,34 +142,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // --- CÁLCULO DE LIMITES (Clamping) ---
-      if (imgRef.current) {
-        const currentScale = transformRef.current.scale;
-        const imgWidth = imgRef.current.offsetWidth * currentScale;
-        const imgHeight = imgRef.current.offsetHeight * currentScale;
-        
-        // Assumindo tela cheia ou usando parentElement
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+      // --- CÁLCULO DE LIMITES (Clamping) COM CACHE ---
+      // Usa valores cacheados no TouchStart
+      const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
+      
+      const currentScale = transformRef.current.scale;
+      const scaledWidth = imgWidth * currentScale;
+      const scaledHeight = imgHeight * currentScale;
+      
+      // O máximo que podemos deslocar é metade do quanto a imagem é maior que a tela
+      const maxOffsetX = Math.max(0, (scaledWidth - viewportWidth) / 2);
+      const maxOffsetY = Math.max(0, (scaledHeight - viewportHeight) / 2);
 
-        // O máximo que podemos deslocar é metade do quanto a imagem é maior que a tela
-        // Se a imagem for menor que a tela, o deslocamento deve ser 0 (centralizado)
-        const maxOffsetX = Math.max(0, (imgWidth - viewportWidth) / 2);
-        const maxOffsetY = Math.max(0, (imgHeight - viewportHeight) / 2);
+      let nextX = transformRef.current.x + dx;
+      let nextY = transformRef.current.y + dy;
 
-        let nextX = transformRef.current.x + dx;
-        let nextY = transformRef.current.y + dy;
+      // Aplica o limite
+      nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
+      nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
 
-        // Aplica o limite
-        nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
-        nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
-
-        transformRef.current.x = nextX;
-        transformRef.current.y = nextY;
-      } else {
-         transformRef.current.x += dx;
-         transformRef.current.y += dy;
-      }
+      transformRef.current.x = nextX;
+      transformRef.current.y = nextY;
       
       lastTouchRef.current = { ...lastTouchRef.current, x: e.touches[0].pageX, y: e.touches[0].pageY };
       updateImageTransform();
@@ -213,6 +227,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     setShowInfoImage(false);
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
   };
 
   const nextImage = (e: React.MouseEvent) => {

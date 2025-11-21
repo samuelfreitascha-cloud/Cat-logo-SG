@@ -48,6 +48,15 @@ export const HeroCarousel: React.FC = () => {
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
+  const rafRef = useRef<number | null>(null); // Request Animation Frame
+
+  // Cache de Layout para evitar reflow (Layout Thrashing)
+  const layoutCacheRef = useRef({
+    imgWidth: 0,
+    imgHeight: 0,
+    viewportWidth: 0,
+    viewportHeight: 0
+  });
 
   // Refs para detecção de TAP (Clique rápido)
   const touchStartTimeRef = useRef(0);
@@ -103,6 +112,7 @@ export const HeroCarousel: React.FC = () => {
     setIsZoomOpen(false);
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
   };
 
   // Funções de navegação dentro do Modal (Agora acionadas por GESTOS)
@@ -132,9 +142,6 @@ export const HeroCarousel: React.FC = () => {
         if (imgRef.current) {
            imgRef.current.style.transition = "none";
            updateImageTransform();
-           
-           // Opcional: Pequeno fade-in ou slide-in vindo do outro lado poderia ser feito aqui
-           // mas o reset instantâneo é padrão em galerias performáticas
         }
     }, 200);
   };
@@ -159,10 +166,13 @@ export const HeroCarousel: React.FC = () => {
   // --- Lógica de Gestos (High Performance) ---
 
   const updateImageTransform = () => {
-    if (imgRef.current) {
-      const { x, y, scale } = transformRef.current;
-      imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
-    }
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      if (imgRef.current) {
+        const { x, y, scale } = transformRef.current;
+        imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+      }
+    });
   };
 
   // Atualiza UI baseado no modo
@@ -190,6 +200,16 @@ export const HeroCarousel: React.FC = () => {
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
 
+    // CACHE DE LAYOUT: Mede tudo agora para não medir durante o movimento
+    if (imgRef.current) {
+        layoutCacheRef.current = {
+            imgWidth: imgRef.current.offsetWidth,
+            imgHeight: imgRef.current.offsetHeight,
+            viewportWidth: window.innerWidth,
+            viewportHeight: window.innerHeight
+        };
+    }
+
     // Detecção de Pinça (2 dedos) ativa automaticamente o modo zoom
     if (e.touches.length === 2) {
       if (!zoomMode) setZoomMode(true);
@@ -200,7 +220,6 @@ export const HeroCarousel: React.FC = () => {
     } 
     // 1 dedo
     else if (e.touches.length === 1) {
-      // Permite arrastar se estiver com Zoom OU se estiver em escala 1 (Swipe)
       lastTouchRef.current = { 
         x: e.touches[0].pageX, 
         y: e.touches[0].pageY, 
@@ -210,9 +229,6 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    // Se não for modo zoom E não for swipe (escala 1), ignora
-    // Mas agora queremos swipe em escala 1, então permitimos se tiver touch
-    
     if (e.cancelable) e.preventDefault();
     if (!lastTouchRef.current) return;
     
@@ -231,31 +247,28 @@ export const HeroCarousel: React.FC = () => {
       
       if (transformRef.current.scale > 1) {
           // --- MODO ZOOM: PAN COM LIMITES (Clamping) ---
-          if (imgRef.current) {
-            const currentScale = transformRef.current.scale;
-            const imgWidth = imgRef.current.offsetWidth * currentScale;
-            const imgHeight = imgRef.current.offsetHeight * currentScale;
-            
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
+          // Usando valores CACHEADOS para evitar layout thrashing
+          const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
+          
+          const currentScale = transformRef.current.scale;
+          const scaledWidth = imgWidth * currentScale;
+          const scaledHeight = imgHeight * currentScale;
+          
+          const maxOffsetX = Math.max(0, (scaledWidth - viewportWidth) / 2);
+          const maxOffsetY = Math.max(0, (scaledHeight - viewportHeight) / 2);
 
-            const maxOffsetX = Math.max(0, (imgWidth - viewportWidth) / 2);
-            const maxOffsetY = Math.max(0, (imgHeight - viewportHeight) / 2);
+          let nextX = transformRef.current.x + dx;
+          let nextY = transformRef.current.y + dy;
 
-            let nextX = transformRef.current.x + dx;
-            let nextY = transformRef.current.y + dy;
-
-            nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
-            nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
-            
-            transformRef.current.x = nextX;
-            transformRef.current.y = nextY;
-          }
+          // Clamping (Limites)
+          nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
+          nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
+          
+          transformRef.current.x = nextX;
+          transformRef.current.y = nextY;
       } else {
-          // --- MODO NORMAL: SWIPE LIVRE (Sem Clamping Horizontal) ---
-          // Permite arrastar para os lados livremente para indicar navegação
+          // --- MODO NORMAL: SWIPE LIVRE ---
           transformRef.current.x += dx;
-          // Ignora Y no swipe de galeria
       }
 
       lastTouchRef.current = {
@@ -283,18 +296,16 @@ export const HeroCarousel: React.FC = () => {
         return;
     }
 
-    // Lógica de SWIPE (Troca de Slide) se escala for 1
+    // Lógica de SWIPE (Troca de Slide)
     if (transformRef.current.scale === 1) {
-        const swipeThreshold = 70; // Distância mínima para trocar
+        const swipeThreshold = 70; 
         
         if (transformRef.current.x < -swipeThreshold) {
-            // Arrastou para esquerda -> PRÓXIMO
             handleSwipeNavigation('next');
         } else if (transformRef.current.x > swipeThreshold) {
-            // Arrastou para direita -> ANTERIOR
             handleSwipeNavigation('prev');
         } else {
-            // Não arrastou o suficiente -> BOUNCE BACK (Volta pro meio)
+            // Bounce back
             if (transformRef.current.x !== 0) {
                 transformRef.current.x = 0;
                 if (imgRef.current) {
@@ -305,7 +316,6 @@ export const HeroCarousel: React.FC = () => {
             }
         }
     } 
-    // Lógica de REBOTE do Zoom (se diminuir menos que 1)
     else if (transformRef.current.scale < 1) {
       transformRef.current = { x: 0, y: 0, scale: 1 };
       if (imgRef.current) {
@@ -435,7 +445,7 @@ export const HeroCarousel: React.FC = () => {
             />
           </div>
           
-          {/* UI Control: Apenas Título e Pontinhos (Botões de navegação removidos para usar Swipe) */}
+          {/* UI Control: Apenas Título e Pontinhos */}
           <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
              {/* Área Superior */}
              <div></div>
