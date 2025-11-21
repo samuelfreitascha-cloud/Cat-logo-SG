@@ -1,9 +1,11 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MoreVertical, Brush, Headset, Briefcase, PlusCircle, MessageSquare, BadgeCheck } from 'lucide-react';
 
 export const Services: React.FC = () => {
   const navigate = useNavigate();
+  const whatsappLink = "https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap";
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
@@ -36,10 +38,15 @@ export const Services: React.FC = () => {
           <p className="text-slate-700 text-sm leading-relaxed mb-6">
             Personalize cadeiras com sua logomarca ou arte exclusiva. Ideal para eventos, brindes corporativos ou para deixar seu espaço com uma identidade única.
           </p>
-          <button className="w-full bg-blue-700 text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg shadow-blue-700/20">
+          <a 
+            href={whatsappLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full bg-blue-700 text-white font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg shadow-blue-700/20"
+          >
             <PlusCircle size={20} />
             Solicitar Orçamento
-          </button>
+          </a>
         </div>
 
         {/* Card 2 */}
@@ -57,7 +64,7 @@ export const Services: React.FC = () => {
             Nossa equipe de especialistas está pronta para ajudar você a escolher os melhores produtos para seu ambiente, seja ele interno ou externo.
           </p>
           <a 
-            href="https://wa.me/5511930364088"
+            href={whatsappLink}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full bg-slate-200 text-slate-800 font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform hover:bg-slate-300"
@@ -81,10 +88,15 @@ export const Services: React.FC = () => {
           <p className="text-slate-700 text-sm leading-relaxed mb-6">
             Oferecemos condições exclusivas para compras em grande volume. Se você é um revendedor ou hoteleiro, temos o plano perfeito.
           </p>
-          <button className="w-full bg-slate-200 text-slate-800 font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform hover:bg-slate-300">
+          <a 
+            href={whatsappLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full bg-slate-200 text-slate-800 font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform hover:bg-slate-300"
+          >
             <BadgeCheck size={20} />
             Ver Condições
-          </button>
+          </a>
         </div>
       </main>
     </div>
