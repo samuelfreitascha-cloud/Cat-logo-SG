@@ -49,6 +49,10 @@ export const HeroCarousel: React.FC = () => {
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
 
+  // Refs para detecção de TAP (Clique rápido)
+  const touchStartTimeRef = useRef(0);
+  const touchStartPosRef = useRef({ x: 0, y: 0 });
+
   // Auto-play
   useEffect(() => {
     if (CAROUSEL_IMAGES.length <= 1) return;
@@ -101,9 +105,8 @@ export const HeroCarousel: React.FC = () => {
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
-  // Alterna modo zoom no clique (2º e 3º clique)
-  const toggleZoomMode = (e: React.MouseEvent) => {
-      e.stopPropagation();
+  // Alterna modo zoom
+  const performToggleZoom = () => {
       if (zoomMode) {
           // Reset
           setZoomMode(false);
@@ -147,6 +150,10 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Registra dados para detecção de TAP
+    touchStartTimeRef.current = Date.now();
+    touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
+
     // Detecção de Pinça (2 dedos) ativa automaticamente o modo zoom
     if (e.touches.length === 2) {
       if (!zoomMode) setZoomMode(true);
@@ -169,7 +176,7 @@ export const HeroCarousel: React.FC = () => {
     // Permite movimento se estiver em zoomMode OU se estiver fazendo pinça (2 dedos)
     if (!zoomMode && e.touches.length !== 2) return;
 
-    e.preventDefault();
+    if (e.cancelable) e.preventDefault();
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
@@ -197,8 +204,21 @@ export const HeroCarousel: React.FC = () => {
     }
   };
 
-  const handleTouchEnd = () => {
-    // Se soltar, não reseta o modo automaticamente, apenas a física
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const timeDiff = Date.now() - touchStartTimeRef.current;
+    const touchEndPos = e.changedTouches[0];
+    const distDiff = Math.hypot(
+        touchEndPos.pageX - touchStartPosRef.current.x,
+        touchEndPos.pageY - touchStartPosRef.current.y
+    );
+
+    // Lógica de TAP (Clique rápido):
+    // Tolerância aumentada para 300ms e 20px
+    if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
+        performToggleZoom();
+    }
+
+    // Física de término de arraste
     lastTouchRef.current = null;
     
     if (transformRef.current.scale < 1) {
@@ -318,7 +338,6 @@ export const HeroCarousel: React.FC = () => {
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            onClick={toggleZoomMode}
           >
             <img 
               ref={imgRef}

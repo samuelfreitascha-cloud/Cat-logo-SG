@@ -25,6 +25,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
 
+  // Refs para detecção de TAP (Clique rápido)
+  const touchStartTimeRef = useRef(0);
+  const touchStartPosRef = useRef({ x: 0, y: 0 });
+
   // Determina as imagens a serem usadas (Galeria ou Imagem única)
   const images = product.gallery && product.gallery.length > 0 ? product.gallery : [product.image];
 
@@ -75,6 +79,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Registra dados para detecção de TAP
+    touchStartTimeRef.current = Date.now();
+    touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
+
     // Se detectar 2 dedos, ativa o zoomMode automaticamente e inicia o cálculo
     if (e.touches.length === 2) {
       if (!zoomMode) setZoomMode(true); // Ativação automática
@@ -97,7 +105,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     // Permite movimento se estiver em zoomMode OU se estiver fazendo pinça (2 dedos)
     if (!zoomMode && e.touches.length !== 2) return;
     
-    e.preventDefault(); 
+    // Previne scroll nativo apenas se estiver interagindo
+    if (e.cancelable) e.preventDefault();
     
     if (!lastTouchRef.current) return;
     
@@ -119,10 +128,37 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     }
   };
 
-  const handleTouchEnd = () => {
-    // Se soltar os dedos, verifica se precisa resetar
-    // Não resetamos o zoomMode aqui para permitir que o usuário tire o dedo e continue vendo o zoom
-    
+  const performToggleZoom = () => {
+      if (zoomMode) {
+          // 3º Passo: Volta para Galeria (Reset)
+          setZoomMode(false);
+          transformRef.current = { x: 0, y: 0, scale: 1 };
+          if (imgRef.current) {
+              imgRef.current.style.transition = "transform 0.3s ease-out";
+              updateImageTransform();
+              setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
+          }
+      } else {
+          // 2º Passo: Habilita Zoom (Esconde UI)
+          setZoomMode(true);
+      }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const timeDiff = Date.now() - touchStartTimeRef.current;
+    const touchEndPos = e.changedTouches[0];
+    const distDiff = Math.hypot(
+        touchEndPos.pageX - touchStartPosRef.current.x,
+        touchEndPos.pageY - touchStartPosRef.current.y
+    );
+
+    // Lógica de TAP (Clique):
+    // Aumentada tolerância para 300ms e 20px para evitar "cliques falhos"
+    if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
+        performToggleZoom();
+    }
+
+    // Limpeza de física de arrastar
     lastTouchRef.current = null;
     if (transformRef.current.scale < 1) { 
       transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -150,25 +186,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     setShowInfoImage(false);
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
-  };
-
-  // Alternância entre Modo Galeria e Modo Zoom (2º e 3º Cliques)
-  const toggleZoomMode = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      
-      if (zoomMode) {
-          // 3º Clique: Volta para Galeria (Reset)
-          setZoomMode(false);
-          transformRef.current = { x: 0, y: 0, scale: 1 };
-          if (imgRef.current) {
-              imgRef.current.style.transition = "transform 0.3s ease-out";
-              updateImageTransform();
-              setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
-          }
-      } else {
-          // 2º Clique: Habilita Zoom (Esconde UI)
-          setZoomMode(true);
-      }
   };
 
   const nextImage = (e: React.MouseEvent) => {
@@ -333,10 +350,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
              </div>
         </div>
         
-        {/* Área da Imagem - Clique alterna o modo Zoom */}
+        {/* Área da Imagem */}
         <div 
           className="flex-1 w-full h-full bg-white overflow-hidden"
-          onClick={toggleZoomMode}
         >
             <div 
                 className="w-full h-full flex items-center justify-center"
