@@ -391,7 +391,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             </div>
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-slate-800 truncate">{product.name}</h4>
+            <h4 
+              onClick={openZoom}
+              className="font-semibold text-slate-800 truncate cursor-pointer hover:text-primary transition-colors"
+            >
+              {product.name}
+            </h4>
             <p className="text-sm text-slate-500 truncate">{product.description}</p>
             <p className="text-md font-bold text-primary mt-1">R$ {product.price.toFixed(2).replace('.', ',')}</p>
           </div>
@@ -421,7 +426,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           )}
         </div>
         <div className="p-3 flex flex-col flex-grow">
-          <h3 className="font-semibold text-sm text-slate-800 truncate">{product.name}</h3>
+          <h3 
+            onClick={openZoom}
+            className="font-semibold text-sm text-slate-800 truncate cursor-pointer hover:text-primary transition-colors"
+          >
+            {product.name}
+          </h3>
           <p className="text-xs text-slate-500 mb-2 truncate">{product.description}</p>
           <div className="mt-auto flex justify-between items-center">
             <span className="font-bold text-base text-slate-900">R$ {product.price.toFixed(2).replace('.', ',')}</span>
