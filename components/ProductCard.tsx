@@ -199,7 +199,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     return (
       <button onClick={handleActionClick} className={buttonClasses}>
         {product.externalUrl ? (
-          isWhatsApp ? <MessageCircle size={isList ? 20 : 16} /> : <ShoppingBag size={isList ? 20 : 16} />
+          isWhatsApp ? (
+            <MessageCircle size={isList ? 20 : 16} />
+          ) : (
+            <div className="relative flex items-center justify-center">
+                <ShoppingBag size={isList ? 20 : 16} />
+                <Plus 
+                    size={isList ? 10 : 8} 
+                    strokeWidth={4} 
+                    className="absolute -bottom-1 -right-1" 
+                />
+            </div>
+          )
         ) : (
           <Plus size={isList ? 20 : 16} />
         )}
