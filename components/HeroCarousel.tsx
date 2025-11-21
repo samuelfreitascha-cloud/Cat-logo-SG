@@ -147,13 +147,16 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!zoomMode) return;
-
+    // Detecção de Pinça (2 dedos) ativa automaticamente o modo zoom
     if (e.touches.length === 2) {
+      if (!zoomMode) setZoomMode(true);
+
       const dist = getDistance(e.touches);
       lastTouchRef.current = { x: 0, y: 0, dist };
       initialScaleRef.current = transformRef.current.scale;
-    } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
+    } 
+    // 1 dedo só funciona se JÁ estiver no modo zoom
+    else if (zoomMode && e.touches.length === 1 && transformRef.current.scale > 1) {
       lastTouchRef.current = { 
         x: e.touches[0].pageX, 
         y: e.touches[0].pageY, 
@@ -163,7 +166,8 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!zoomMode) return;
+    // Permite movimento se estiver em zoomMode OU se estiver fazendo pinça (2 dedos)
+    if (!zoomMode && e.touches.length !== 2) return;
 
     e.preventDefault();
     if (!lastTouchRef.current) return;
@@ -194,9 +198,9 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchEnd = () => {
-    if (!zoomMode) return;
-
+    // Se soltar, não reseta o modo automaticamente, apenas a física
     lastTouchRef.current = null;
+    
     if (transformRef.current.scale < 1) {
       transformRef.current = { x: 0, y: 0, scale: 1 };
       if (imgRef.current) {

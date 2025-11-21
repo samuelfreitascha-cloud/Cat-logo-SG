@@ -75,14 +75,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Só permite gestos se estiver no modo Zoom (2º clique)
-    if (!zoomMode) return;
-
+    // Se detectar 2 dedos, ativa o zoomMode automaticamente e inicia o cálculo
     if (e.touches.length === 2) {
+      if (!zoomMode) setZoomMode(true); // Ativação automática
+      
       const dist = getDistance(e.touches);
       lastTouchRef.current = { x: 0, y: 0, dist };
       initialScaleRef.current = transformRef.current.scale;
-    } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
+    } 
+    // Se for 1 dedo, só permite se JÁ estiver no modo zoom (arrastar)
+    else if (zoomMode && e.touches.length === 1 && transformRef.current.scale > 1) {
       lastTouchRef.current = { 
         x: e.touches[0].pageX, 
         y: e.touches[0].pageY, 
@@ -92,8 +94,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    // Bloqueia gestos se não estiver no modo Zoom
-    if (!zoomMode) return;
+    // Permite movimento se estiver em zoomMode OU se estiver fazendo pinça (2 dedos)
+    if (!zoomMode && e.touches.length !== 2) return;
     
     e.preventDefault(); 
     
@@ -118,7 +120,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchEnd = () => {
-    if (!zoomMode) return;
+    // Se soltar os dedos, verifica se precisa resetar
+    // Não resetamos o zoomMode aqui para permitir que o usuário tire o dedo e continue vendo o zoom
     
     lastTouchRef.current = null;
     if (transformRef.current.scale < 1) { 
@@ -239,8 +242,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const ZoomModal = () => {
     // Aplicar zoom inicial para produto Veneza (apenas se não for infoImage e for o produto específico)
-    // NOTA: Com a nova lógica de 3 cliques, o Veneza também começa no modo galeria, mas podemos manter o scale visual
-    // porem sem ativar o modo de gestos inicialmente.
     const isVenezaInitial = product.id === '1' && !showInfoImage && activeImageIndex === 0;
 
     useEffect(() => {
@@ -342,7 +343,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                // onDoubleClick={handleDoubleTap} // Substituído pela lógica de clique único para toggle
             >
               <img 
                 ref={imgRef}
