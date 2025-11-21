@@ -117,8 +117,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
       lastTouchRef.current = { x: 0, y: 0, dist };
       initialScaleRef.current = transformRef.current.scale;
     } 
-    // Se for 1 dedo, só permite se JÁ estiver no modo zoom (arrastar)
-    else if (zoomMode && e.touches.length === 1 && transformRef.current.scale > 1) {
+    // Se for 1 dedo
+    else if (e.touches.length === 1) {
       lastTouchRef.current = { 
         x: e.touches[0].pageX, 
         y: e.touches[0].pageY, 
@@ -127,47 +127,84 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     }
   };
 
+  const handleSwipeNavigation = (direction: 'next' | 'prev') => {
+    // Não faz nada se for imagem única e não for Saber Mais
+    if (images.length <= 1 && !showInfoImage) {
+        // Reset visual apenas
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        if (imgRef.current) {
+            imgRef.current.style.transition = "transform 0.2s ease-out";
+            updateImageTransform();
+            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
+        }
+        return;
+    }
+    
+    const screenWidth = window.innerWidth;
+    const exitX = direction === 'next' ? -screenWidth : screenWidth;
+
+    if (imgRef.current) {
+        imgRef.current.style.transition = "transform 0.2s ease-out";
+        imgRef.current.style.transform = `translate3d(${exitX}px, 0, 0) scale(1)`;
+    }
+
+    setTimeout(() => {
+        if (direction === 'next') {
+            if (activeImageIndex < images.length - 1) setActiveImageIndex(prev => prev + 1);
+            else setActiveImageIndex(0);
+        } else {
+            if (activeImageIndex > 0) setActiveImageIndex(prev => prev - 1);
+            else setActiveImageIndex(images.length - 1);
+        }
+
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        setZoomMode(false);
+        if (imgRef.current) {
+           imgRef.current.style.transition = "none";
+           updateImageTransform();
+        }
+    }, 200);
+  };
+
   const handleTouchMove = (e: React.TouchEvent) => {
-    // Permite movimento se estiver em zoomMode OU se estiver fazendo pinça (2 dedos)
-    if (!zoomMode && e.touches.length !== 2) return;
-    
-    // Previne scroll nativo apenas se estiver interagindo
     if (e.cancelable) e.preventDefault();
-    
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
+      if (!zoomMode) setZoomMode(true);
       const dist = getDistance(e.touches);
       const scaleFactor = dist / lastTouchRef.current.dist;
       const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 3);
       transformRef.current.scale = newScale;
       updateImageTransform();
 
-    } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
+    } else if (e.touches.length === 1) {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // --- CÁLCULO DE LIMITES (Clamping) COM CACHE ---
-      // Usa valores cacheados no TouchStart
-      const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
-      
-      const currentScale = transformRef.current.scale;
-      const scaledWidth = imgWidth * currentScale;
-      const scaledHeight = imgHeight * currentScale;
-      
-      // O máximo que podemos deslocar é metade do quanto a imagem é maior que a tela
-      const maxOffsetX = Math.max(0, (scaledWidth - viewportWidth) / 2);
-      const maxOffsetY = Math.max(0, (scaledHeight - viewportHeight) / 2);
+      // SE A ESCALA FOR > 1.1: MODO PAN (Zoom)
+      if (transformRef.current.scale > 1.1) {
+          const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
+          
+          const currentScale = transformRef.current.scale;
+          const scaledWidth = imgWidth * currentScale;
+          const scaledHeight = imgHeight * currentScale;
+          
+          const maxOffsetX = Math.max(0, (scaledWidth - viewportWidth) / 2);
+          const maxOffsetY = Math.max(0, (scaledHeight - viewportHeight) / 2);
 
-      let nextX = transformRef.current.x + dx;
-      let nextY = transformRef.current.y + dy;
+          let nextX = transformRef.current.x + dx;
+          let nextY = transformRef.current.y + dy;
 
-      // Aplica o limite
-      nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
-      nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
+          nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
+          nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
 
-      transformRef.current.x = nextX;
-      transformRef.current.y = nextY;
+          transformRef.current.x = nextX;
+          transformRef.current.y = nextY;
+      } else {
+          // SE A ESCALA FOR 1: MODO SWIPE (Galeria)
+          transformRef.current.x += dx;
+      }
       
       lastTouchRef.current = { ...lastTouchRef.current, x: e.touches[0].pageX, y: e.touches[0].pageY };
       updateImageTransform();
@@ -176,7 +213,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const performToggleZoom = () => {
       if (zoomMode) {
-          // 3º Passo: Volta para Galeria (Reset)
           setZoomMode(false);
           transformRef.current = { x: 0, y: 0, scale: 1 };
           if (imgRef.current) {
@@ -185,7 +221,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
               setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
           }
       } else {
-          // 2º Passo: Habilita Zoom (Esconde UI)
           setZoomMode(true);
       }
   };
@@ -198,25 +233,51 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         touchEndPos.pageY - touchStartPosRef.current.y
     );
 
-    // Lógica de TAP (Clique):
+    // TAP
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
         performToggleZoom();
+        lastTouchRef.current = null;
+        return;
+    }
+    
+    // PROTEÇÃO CRÍTICA:
+    // Se estiver com zoom (> 1.1), NUNCA muda de slide.
+    if (transformRef.current.scale > 1.1) {
+       lastTouchRef.current = null;
+       return;
     }
 
-    // Limpeza de física de arrastar
-    lastTouchRef.current = null;
-    
-    // Reset com Snap-Back agressivo para evitar travar em 1.0001
-    if (transformRef.current.scale < 1.1) { 
-      transformRef.current = { x: 0, y: 0, scale: 1 };
-      setZoomMode(false); // Desativa modo zoom para evitar travamento da UI
-      
-      if (imgRef.current) {
-        imgRef.current.style.transition = "transform 0.3s ease-out";
-        updateImageTransform();
-        setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
-      }
+    // Se estiver com zoom mínimo (entre 1 e 1.1), reseta para 1.0
+    if (transformRef.current.scale > 1 && transformRef.current.scale <= 1.1) {
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        setZoomMode(false);
+        if (imgRef.current) {
+            imgRef.current.style.transition = "transform 0.3s ease-out";
+            updateImageTransform();
+            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
+        }
+        lastTouchRef.current = null;
+        return;
     }
+
+    // SWIPE LOGIC
+    // Só executa se a escala for 1.0 (ou menor durante bounce)
+    const swipeThreshold = 70;
+    if (transformRef.current.x < -swipeThreshold) {
+        handleSwipeNavigation('next');
+    } else if (transformRef.current.x > swipeThreshold) {
+        handleSwipeNavigation('prev');
+    } else {
+        // Reset / Bounce back
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        if (imgRef.current) {
+            imgRef.current.style.transition = "transform 0.2s ease-out";
+            updateImageTransform();
+            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
+        }
+    }
+    
+    lastTouchRef.current = null;
   };
 
   // 1º Clique: Abre o Modal (List/Grid -> Modal)
@@ -478,7 +539,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         <div className="p-3 flex flex-col flex-grow">
           <h3 
             onClick={openZoom}
-            className="font-semibold text-sm text-slate-800 truncate cursor-pointer hover:text-primary transition-colors"
+            className="font-semibold text-slate-800 truncate cursor-pointer hover:text-primary transition-colors"
           >
             {product.name}
           </h3>

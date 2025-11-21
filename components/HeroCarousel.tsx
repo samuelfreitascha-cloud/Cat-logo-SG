@@ -250,8 +250,8 @@ export const HeroCarousel: React.FC = () => {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // Usando tolerância (1.05) para evitar que pequenas variações matematicas bloqueiem o swipe
-      if (transformRef.current.scale > 1.05) {
+      // Usando tolerância (1.1) - Se estiver com zoom, é PANNING (não swipe)
+      if (transformRef.current.scale > 1.1) {
           // --- MODO ZOOM: PAN COM LIMITES (Clamping) ---
           const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
           
@@ -301,39 +301,45 @@ export const HeroCarousel: React.FC = () => {
         return;
     }
 
-    // Lógica de SWIPE (Troca de Slide)
-    // Usamos uma tolerância: se a escala for menor que 1.05, consideramos como 1 (sem zoom)
-    if (transformRef.current.scale <= 1.05) {
-        const swipeThreshold = 70; 
-        
-        if (transformRef.current.x < -swipeThreshold) {
-            handleSwipeNavigation('next');
-        } else if (transformRef.current.x > swipeThreshold) {
-            handleSwipeNavigation('prev');
-        } else {
-            // Se não houve swipe, GARANTE que volta para o estado limpo (Scale 1, X 0, Y 0)
-            // Isso corrige o "Slide travado" caso a pessoa tenha dado um micro-zoom e soltado
-            transformRef.current = { x: 0, y: 0, scale: 1 };
-            if (imgRef.current) {
-                imgRef.current.style.transition = "transform 0.2s ease-out";
-                updateImageTransform();
-                setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
-            }
+    // Lógica de PROTEÇÃO ANTI-PULO:
+    // Se a escala final for maior que 1.1, o usuário estava dando zoom. 
+    // NUNCA deve trocar de slide se estiver com zoom.
+    if (transformRef.current.scale > 1.1) {
+       // Apenas limpa o toque. O usuário está olhando detalhes.
+       lastTouchRef.current = null;
+       return; 
+    }
+
+    // Se chegamos aqui, a escala é pequena (~1).
+    // Se estiver levemente alterada (< 1.1), forçamos o reset para 1.0 para evitar sujeira
+    if (transformRef.current.scale > 1 && transformRef.current.scale <= 1.1) {
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        setZoomMode(false);
+        if (imgRef.current) {
+            imgRef.current.style.transition = "transform 0.3s ease-out";
+            updateImageTransform();
+            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
         }
-    } 
-    else {
-      // Se a escala for > 1.05 (usuário deu zoom intencional), mantemos o zoom
-      // Mas se soltou o dedo e a escala estava < 1 (zoom negativo), resetamos
-      if (transformRef.current.scale < 1) {
+        lastTouchRef.current = null;
+        return;
+    }
+
+    // SWIPE NAVIGATION
+    // Só entra aqui se a escala for efetivamente 1 (ou menor que 1 durante bounce)
+    const swipeThreshold = 70; 
+    
+    if (transformRef.current.x < -swipeThreshold) {
+        handleSwipeNavigation('next');
+    } else if (transformRef.current.x > swipeThreshold) {
+        handleSwipeNavigation('prev');
+    } else {
+        // Se não houve swipe suficiente, reseta posição (bounce back)
         transformRef.current = { x: 0, y: 0, scale: 1 };
         if (imgRef.current) {
-          imgRef.current.style.transition = "transform 0.3s ease-out";
-          updateImageTransform();
-          setTimeout(() => {
-              if (imgRef.current) imgRef.current.style.transition = "none";
-          }, 300);
+            imgRef.current.style.transition = "transform 0.2s ease-out";
+            updateImageTransform();
+            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
         }
-      }
     }
 
     lastTouchRef.current = null;
