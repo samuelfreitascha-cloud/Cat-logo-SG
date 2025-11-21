@@ -41,7 +41,7 @@ export const PRODUCTS: Product[] = [
     image: 'https://images.unsplash.com/photo-1527610267748-75286c579ea5?q=80&w=1935&auto=format&fit=crop',
     category: 'Praia',
     color: 'Azul Royal',
-    externalUrl: 'https://wa.me/5511930364088?text=Olá, gostaria de um orçamento para o Guarda-Sol Bagum 1,60m',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Guarda-Sol%20Bagum%201,60m',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder (pode substituir depois)
   },
   {
@@ -52,7 +52,7 @@ export const PRODUCTS: Product[] = [
     image: 'https://images.unsplash.com/photo-1597423244036-ef5020e83f3c?q=80&w=1974&auto=format&fit=crop',
     category: 'Praia',
     color: 'Natural',
-    externalUrl: 'https://wa.me/5511930364088?text=Olá, gostaria de um orçamento para o Ombrelone de Madeira 2,40m',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Ombrelone%20Madeira%202,40m',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
   },
   {
@@ -63,7 +63,7 @@ export const PRODUCTS: Product[] = [
     image: 'https://images.unsplash.com/photo-1535262412227-85541e910204?q=80&w=2069&auto=format&fit=crop',
     category: 'Praia',
     color: 'Listrado',
-    externalUrl: 'https://wa.me/5511930364088?text=Olá, gostaria de um orçamento para o Guarda-Sol Articulado',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Guarda-Sol%20Articulado',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
   },
   {
@@ -74,7 +74,7 @@ export const PRODUCTS: Product[] = [
     image: 'https://images.unsplash.com/photo-1622396090075-ab49e6223992?q=80&w=2071&auto=format&fit=crop',
     category: 'Praia',
     color: 'Branco',
-    externalUrl: 'https://wa.me/5511930364088?text=Olá, gostaria de um orçamento para a Base de Guarda-Sol',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20a%20Base%20para%20Guarda-Sol',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
   }
 ];
