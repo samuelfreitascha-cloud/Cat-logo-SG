@@ -191,8 +191,33 @@ export const HeroCarousel: React.FC = () => {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      transformRef.current.x += dx;
-      transformRef.current.y += dy;
+      // --- CÁLCULO DE LIMITES (Clamping) ---
+      if (imgRef.current) {
+        const currentScale = transformRef.current.scale;
+        const imgWidth = imgRef.current.offsetWidth * currentScale;
+        const imgHeight = imgRef.current.offsetHeight * currentScale;
+        
+        // Assumindo tela cheia
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Limite de deslocamento
+        const maxOffsetX = Math.max(0, (imgWidth - viewportWidth) / 2);
+        const maxOffsetY = Math.max(0, (imgHeight - viewportHeight) / 2);
+
+        let nextX = transformRef.current.x + dx;
+        let nextY = transformRef.current.y + dy;
+
+        // Aplica o limite
+        nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
+        nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
+        
+        transformRef.current.x = nextX;
+        transformRef.current.y = nextY;
+      } else {
+        transformRef.current.x += dx;
+        transformRef.current.y += dy;
+      }
 
       lastTouchRef.current = {
         ...lastTouchRef.current,
