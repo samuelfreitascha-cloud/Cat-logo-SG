@@ -15,6 +15,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showInfoImage, setShowInfoImage] = useState(false);
   
+  // Estado para controlar o "Modo Zoom" (2º clique)
+  const [zoomMode, setZoomMode] = useState(false);
+  
   // Refs para animação direta (High Performance)
   const imgRef = useRef<HTMLImageElement>(null);
   const uiRef = useRef<HTMLDivElement>(null); // Ref para elementos da interface que somem
@@ -49,20 +52,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
       const { x, y, scale } = transformRef.current;
       imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
     }
+  };
 
-    // Atualiza a interface (Fade out ao dar zoom)
+  // Atualiza a UI baseada no MODO (zoomMode) e não na escala
+  useEffect(() => {
     if (uiRef.current) {
-        const { scale } = transformRef.current;
-        // Se o zoom for maior que 1.05 (começou a ampliar), esconde a UI
-        const opacity = scale > 1.05 ? '0' : '1';
-        const pointerEvents = scale > 1.05 ? 'none' : 'auto';
+        const opacity = zoomMode ? '0' : '1';
+        const pointerEvents = zoomMode ? 'none' : 'auto';
         
         if (uiRef.current.style.opacity !== opacity) {
             uiRef.current.style.opacity = opacity;
             uiRef.current.style.pointerEvents = pointerEvents;
         }
     }
-  };
+  }, [zoomMode]);
 
   const getDistance = (touches: React.TouchList) => {
     return Math.hypot(
@@ -72,6 +75,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Só permite gestos se estiver no modo Zoom (2º clique)
+    if (!zoomMode) return;
+
     if (e.touches.length === 2) {
       const dist = getDistance(e.touches);
       lastTouchRef.current = { x: 0, y: 0, dist };
@@ -86,7 +92,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    // REMOVIDO: if (showInfoImage) return; -> Agora permite zoom na tela de info também
+    // Bloqueia gestos se não estiver no modo Zoom
+    if (!zoomMode) return;
+    
     e.preventDefault(); 
     
     if (!lastTouchRef.current) return;
@@ -110,6 +118,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchEnd = () => {
+    if (!zoomMode) return;
+    
     lastTouchRef.current = null;
     if (transformRef.current.scale < 1) { 
       transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -121,24 +131,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     }
   };
 
-  const handleDoubleTap = () => {
-    if (imgRef.current) {
-      imgRef.current.style.transition = "transform 0.3s ease-out";
-      if (transformRef.current.scale > 1) { 
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-      } else { 
-        transformRef.current = { x: 0, y: 0, scale: 2.5 }; 
-      }
-      updateImageTransform();
-      setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
-    }
-  };
-
+  // 1º Clique: Abre o Modal (List/Grid -> Modal)
   const openZoom = (e: React.MouseEvent) => {
     e.stopPropagation();
     setActiveImageIndex(0);
     setShowInfoImage(false);
     setIsZoomOpen(true);
+    setZoomMode(false); // Começa no modo Galeria (sem zoom habilitado)
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
@@ -146,7 +145,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     e?.stopPropagation();
     setIsZoomOpen(false);
     setShowInfoImage(false);
+    setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
+  };
+
+  // Alternância entre Modo Galeria e Modo Zoom (2º e 3º Cliques)
+  const toggleZoomMode = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      
+      if (zoomMode) {
+          // 3º Clique: Volta para Galeria (Reset)
+          setZoomMode(false);
+          transformRef.current = { x: 0, y: 0, scale: 1 };
+          if (imgRef.current) {
+              imgRef.current.style.transition = "transform 0.3s ease-out";
+              updateImageTransform();
+              setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
+          }
+      } else {
+          // 2º Clique: Habilita Zoom (Esconde UI)
+          setZoomMode(true);
+      }
   };
 
   const nextImage = (e: React.MouseEvent) => {
@@ -180,6 +199,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     transformRef.current = { x: 0, y: 0, scale: 1 };
     updateImageTransform();
     setShowInfoImage(!showInfoImage);
+    setZoomMode(false); // Reseta o modo ao trocar de tela
   };
 
   // --- Renderização dos Ícones de Ação ---
@@ -219,10 +239,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const ZoomModal = () => {
     // Aplicar zoom inicial para produto Veneza (apenas se não for infoImage e for o produto específico)
+    // NOTA: Com a nova lógica de 3 cliques, o Veneza também começa no modo galeria, mas podemos manter o scale visual
+    // porem sem ativar o modo de gestos inicialmente.
     const isVenezaInitial = product.id === '1' && !showInfoImage && activeImageIndex === 0;
 
     useEffect(() => {
-        // Efeito inicial para garantir que a UI comece visível
         if (uiRef.current) {
             uiRef.current.style.opacity = '1';
             uiRef.current.style.transition = 'opacity 0.3s ease';
@@ -232,7 +253,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     return (
       <div 
         className="fixed inset-0 z-[60] bg-white flex flex-col animate-in fade-in duration-200"
-        onClick={closeZoom}
         style={{ touchAction: 'none' }}
       >
         {/* Botão Fechar FIXO - Fora do container que some */}
@@ -243,9 +263,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             <X size={24} />
         </button>
 
-        {/* Container de Interface que desaparece no Zoom */}
-        <div ref={uiRef} className="absolute inset-0 z-[65] pointer-events-none flex flex-col justify-between p-4">
-             {/* Título Flutuante (Sem barra) */}
+        {/* Container de Interface que desaparece no Modo Zoom */}
+        <div ref={uiRef} className="absolute inset-0 z-[65] pointer-events-none flex flex-col justify-between p-4 transition-opacity duration-300">
+             {/* Título Flutuante */}
              <div className="mt-2 pointer-events-auto self-start">
                  <h2 className="text-xl font-bold text-slate-900 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-sm inline-block">
                      {product.name}
@@ -312,17 +332,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
              </div>
         </div>
         
-        {/* Área da Imagem - UNIFICADA: Mesmo container para ambos os modos */}
+        {/* Área da Imagem - Clique alterna o modo Zoom */}
         <div 
           className="flex-1 w-full h-full bg-white overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
+          onClick={toggleZoomMode}
         >
             <div 
                 className="w-full h-full flex items-center justify-center"
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                onDoubleClick={handleDoubleTap}
+                // onDoubleClick={handleDoubleTap} // Substituído pela lógica de clique único para toggle
             >
               <img 
                 ref={imgRef}

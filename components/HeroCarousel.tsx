@@ -40,6 +40,7 @@ export const HeroCarousel: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
   const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [zoomMode, setZoomMode] = useState(false); // Estado para controlar 2º clique
 
   // Refs para animação direta (Performance Ultra Rápida)
   const imgRef = useRef<HTMLImageElement>(null);
@@ -83,18 +84,39 @@ export const HeroCarousel: React.FC = () => {
     return url.includes('i.ibb.co') || url.match(/\.(jpeg|jpg|gif|png)$/i) != null;
   };
 
+  // 1º Clique: Abre o modal (Modo Galeria)
   const handleZoomOpen = (index: number) => {
     const currentImage = CAROUSEL_IMAGES[index];
     if (imageErrors[index] || (!isDirectLink(currentImage.url) && currentImage.url.includes('ibb.co'))) {
         return;
     }
     setIsZoomOpen(true);
+    setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
   const closeZoom = () => {
     setIsZoomOpen(false);
+    setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
+  };
+
+  // Alterna modo zoom no clique (2º e 3º clique)
+  const toggleZoomMode = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (zoomMode) {
+          // Reset
+          setZoomMode(false);
+          transformRef.current = { x: 0, y: 0, scale: 1 };
+          if (imgRef.current) {
+              imgRef.current.style.transition = "transform 0.3s ease-out";
+              updateImageTransform();
+              setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
+          }
+      } else {
+          // Habilita Zoom
+          setZoomMode(true);
+      }
   };
 
   // --- Lógica de Gestos (High Performance) ---
@@ -104,17 +126,18 @@ export const HeroCarousel: React.FC = () => {
       const { x, y, scale } = transformRef.current;
       imgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
     }
-
-    // Controlar opacidade da UI baseada no zoom
-    if (uiRef.current) {
-      const { scale } = transformRef.current;
-      const opacity = scale > 1.05 ? '0' : '1';
-      if (uiRef.current.style.opacity !== opacity) {
-          uiRef.current.style.opacity = opacity;
-          uiRef.current.style.transition = 'opacity 0.2s ease-out';
-      }
-    }
   };
+
+  // Atualiza UI baseado no modo
+  useEffect(() => {
+      if (uiRef.current) {
+        const opacity = zoomMode ? '0' : '1';
+        if (uiRef.current.style.opacity !== opacity) {
+            uiRef.current.style.opacity = opacity;
+            uiRef.current.style.transition = 'opacity 0.2s ease-out';
+        }
+      }
+  }, [zoomMode]);
 
   const getDistance = (touches: React.TouchList) => {
     return Math.hypot(
@@ -124,6 +147,8 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (!zoomMode) return;
+
     if (e.touches.length === 2) {
       const dist = getDistance(e.touches);
       lastTouchRef.current = { x: 0, y: 0, dist };
@@ -138,6 +163,8 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (!zoomMode) return;
+
     e.preventDefault();
     if (!lastTouchRef.current) return;
     
@@ -167,6 +194,8 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchEnd = () => {
+    if (!zoomMode) return;
+
     lastTouchRef.current = null;
     if (transformRef.current.scale < 1) {
       transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -177,21 +206,6 @@ export const HeroCarousel: React.FC = () => {
             if (imgRef.current) imgRef.current.style.transition = "none";
         }, 300);
       }
-    }
-  };
-
-  const handleDoubleTap = () => {
-    if (imgRef.current) {
-      imgRef.current.style.transition = "transform 0.3s ease-out";
-      if (transformRef.current.scale > 1) {
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-      } else {
-        transformRef.current = { x: 0, y: 0, scale: 2.5 };
-      }
-      updateImageTransform();
-      setTimeout(() => {
-        if (imgRef.current) imgRef.current.style.transition = "none";
-      }, 300);
     }
   };
 
@@ -286,7 +300,6 @@ export const HeroCarousel: React.FC = () => {
       {isZoomOpen && (
         <div 
           className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden"
-          onClick={closeZoom}
           style={{ touchAction: 'none' }}
         >
           <button 
@@ -301,8 +314,7 @@ export const HeroCarousel: React.FC = () => {
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            onDoubleClick={handleDoubleTap}
-            onClick={(e) => e.stopPropagation()}
+            onClick={toggleZoomMode}
           >
             <img 
               ref={imgRef}
@@ -316,7 +328,7 @@ export const HeroCarousel: React.FC = () => {
           <div ref={uiRef} className="absolute bottom-8 left-0 right-0 text-center text-slate-500 pointer-events-none transition-opacity duration-200">
             <h2 className="text-xl font-bold mb-1 text-slate-900">{CAROUSEL_IMAGES[currentIndex].title}</h2>
             <p className="text-sm">
-               Toque duplo para resetar | Pinça para zoom (máx 3x)
+               Toque na imagem para habilitar o zoom
             </p>
           </div>
         </div>
