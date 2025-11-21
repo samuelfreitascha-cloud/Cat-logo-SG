@@ -199,15 +199,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     );
 
     // Lógica de TAP (Clique):
-    // Aumentada tolerância para 300ms e 20px para evitar "cliques falhos"
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
         performToggleZoom();
     }
 
     // Limpeza de física de arrastar
     lastTouchRef.current = null;
-    if (transformRef.current.scale < 1) { 
+    
+    // Reset com Snap-Back agressivo para evitar travar em 1.0001
+    if (transformRef.current.scale < 1.1) { 
       transformRef.current = { x: 0, y: 0, scale: 1 };
+      setZoomMode(false); // Desativa modo zoom para evitar travamento da UI
+      
       if (imgRef.current) {
         imgRef.current.style.transition = "transform 0.3s ease-out";
         updateImageTransform();
