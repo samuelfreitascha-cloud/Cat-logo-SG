@@ -185,12 +185,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   // --- Renderização dos Ícones de Ação ---
   const renderActionButton = (isList: boolean) => {
     const buttonClasses = isList 
-      ? `p-2 rounded-full transition-colors ${
+      ? `p-2 px-3 rounded-full transition-colors flex items-center justify-center ${
           product.externalUrl && isWhatsApp
             ? 'bg-green-100 text-green-700 hover:bg-green-600 hover:text-white' 
             : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
         }`
-      : `p-2 rounded-lg text-white transition-colors shadow-md active:scale-95 ${
+      : `p-2 px-3 rounded-lg text-white transition-colors shadow-md active:scale-95 flex items-center justify-center ${
           product.externalUrl && isWhatsApp
             ? 'bg-green-600 hover:bg-green-700 shadow-green-200' 
             : 'bg-primary hover:bg-primary-dark shadow-cyan-200'
@@ -200,14 +200,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
       <button onClick={handleActionClick} className={buttonClasses}>
         {product.externalUrl ? (
           isWhatsApp ? (
-            <MessageCircle size={isList ? 20 : 16} />
+            <MessageCircle size={isList ? 20 : 18} />
           ) : (
-            <div className="relative flex items-center justify-center">
-                <ShoppingBag size={isList ? 20 : 16} />
+            <div className="flex items-center gap-1.5">
+                <ShoppingBag size={isList ? 18 : 16} strokeWidth={2.5} />
                 <Plus 
-                    size={isList ? 10 : 8} 
-                    strokeWidth={4} 
-                    className="absolute -bottom-1 -right-1" 
+                    size={isList ? 14 : 12} 
+                    strokeWidth={3} 
                 />
             </div>
           )

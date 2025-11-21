@@ -18,10 +18,11 @@ export const PRODUCTS: Product[] = [
     name: 'Cadeira Reclinável DuraPlus',
     description: 'Alumínio e Tela sling',
     price: 260.00,
-    image: 'https://i.ibb.co/8DsSfthQ/image.png',
+    image: 'https://res.cloudinary.com/drdktfy8u/image/upload/v1763734024/Cadeira-Reclin%C3%A1vel-duraplus_ts4q7m.png',
     externalUrl: 'https://produto.mercadolivre.com.br/MLB-4075779991-cadeira-de-praia-reclinavel-fixa-dura-mais-resistente-jardim-_JM',
     infoImage: 'https://i.ibb.co/svqtpQ6X/Prancheta-4-c-pia-12.png',
     gallery: [
+      'https://res.cloudinary.com/drdktfy8u/image/upload/v1763734024/Cadeira-Reclin%C3%A1vel-duraplus_ts4q7m.png',
       'https://i.ibb.co/8DsSfthQ/image.png',
       'https://i.ibb.co/ZzThrWG0/1.png',
       'https://i.ibb.co/TxbtzrzR/2.png',
