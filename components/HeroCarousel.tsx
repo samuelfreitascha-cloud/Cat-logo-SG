@@ -105,34 +105,38 @@ export const HeroCarousel: React.FC = () => {
     transformRef.current = { x: 0, y: 0, scale: 1 };
   };
 
-  // Funções de navegação dentro do Modal
-  const changeModalSlide = (newIndex: number) => {
-    // Reset zoom
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    setZoomMode(false); // Garante que a UI volte se trocar de foto
-    
-    // Animação de reset visual
+  // Funções de navegação dentro do Modal (Agora acionadas por GESTOS)
+  const handleSwipeNavigation = (direction: 'next' | 'prev') => {
+    const screenWidth = window.innerWidth;
+    const exitX = direction === 'next' ? -screenWidth : screenWidth;
+
+    // 1. Anima a imagem atual saindo da tela
     if (imgRef.current) {
-       imgRef.current.style.transition = "transform 0.3s ease-out";
-       updateImageTransform();
-       // Remove transição após resetar
-       setTimeout(() => { 
-         if (imgRef.current) imgRef.current.style.transition = "none"; 
-       }, 300);
+        imgRef.current.style.transition = "transform 0.2s ease-out";
+        imgRef.current.style.transform = `translate3d(${exitX}px, 0, 0) scale(1)`;
     }
-    setCurrentIndex(newIndex);
-  };
 
-  const nextModalSlide = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const next = (currentIndex + 1) % CAROUSEL_IMAGES.length;
-    changeModalSlide(next);
-  };
+    // 2. Troca o índice e reseta posição após a animação
+    setTimeout(() => {
+        if (direction === 'next') {
+            setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
+        } else {
+            setCurrentIndex((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length);
+        }
 
-  const prevModalSlide = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const prev = (currentIndex - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length;
-    changeModalSlide(prev);
+        // Reset físico
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        setZoomMode(false); 
+
+        // 3. Remove transição para reposicionar instantaneamente no centro (nova imagem)
+        if (imgRef.current) {
+           imgRef.current.style.transition = "none";
+           updateImageTransform();
+           
+           // Opcional: Pequeno fade-in ou slide-in vindo do outro lado poderia ser feito aqui
+           // mas o reset instantâneo é padrão em galerias performáticas
+        }
+    }, 200);
   };
 
   // Alterna modo zoom
@@ -194,8 +198,9 @@ export const HeroCarousel: React.FC = () => {
       lastTouchRef.current = { x: 0, y: 0, dist };
       initialScaleRef.current = transformRef.current.scale;
     } 
-    // 1 dedo só funciona se JÁ estiver no modo zoom
-    else if (zoomMode && e.touches.length === 1 && transformRef.current.scale > 1) {
+    // 1 dedo
+    else if (e.touches.length === 1) {
+      // Permite arrastar se estiver com Zoom OU se estiver em escala 1 (Swipe)
       lastTouchRef.current = { 
         x: e.touches[0].pageX, 
         y: e.touches[0].pageY, 
@@ -205,13 +210,14 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    // Permite movimento se estiver em zoomMode OU se estiver fazendo pinça (2 dedos)
-    if (!zoomMode && e.touches.length !== 2) return;
-
+    // Se não for modo zoom E não for swipe (escala 1), ignora
+    // Mas agora queremos swipe em escala 1, então permitimos se tiver touch
+    
     if (e.cancelable) e.preventDefault();
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
+      if (!zoomMode) setZoomMode(true);
       const dist = getDistance(e.touches);
       const scaleFactor = dist / lastTouchRef.current.dist;
       const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 3);
@@ -219,36 +225,37 @@ export const HeroCarousel: React.FC = () => {
       transformRef.current.scale = newScale;
       updateImageTransform();
 
-    } else if (e.touches.length === 1 && transformRef.current.scale > 1) {
+    } else if (e.touches.length === 1) {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // --- CÁLCULO DE LIMITES (Clamping) ---
-      if (imgRef.current) {
-        const currentScale = transformRef.current.scale;
-        const imgWidth = imgRef.current.offsetWidth * currentScale;
-        const imgHeight = imgRef.current.offsetHeight * currentScale;
-        
-        // Assumindo tela cheia
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
+      if (transformRef.current.scale > 1) {
+          // --- MODO ZOOM: PAN COM LIMITES (Clamping) ---
+          if (imgRef.current) {
+            const currentScale = transformRef.current.scale;
+            const imgWidth = imgRef.current.offsetWidth * currentScale;
+            const imgHeight = imgRef.current.offsetHeight * currentScale;
+            
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
 
-        // Limite de deslocamento
-        const maxOffsetX = Math.max(0, (imgWidth - viewportWidth) / 2);
-        const maxOffsetY = Math.max(0, (imgHeight - viewportHeight) / 2);
+            const maxOffsetX = Math.max(0, (imgWidth - viewportWidth) / 2);
+            const maxOffsetY = Math.max(0, (imgHeight - viewportHeight) / 2);
 
-        let nextX = transformRef.current.x + dx;
-        let nextY = transformRef.current.y + dy;
+            let nextX = transformRef.current.x + dx;
+            let nextY = transformRef.current.y + dy;
 
-        // Aplica o limite
-        nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
-        nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
-        
-        transformRef.current.x = nextX;
-        transformRef.current.y = nextY;
+            nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
+            nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
+            
+            transformRef.current.x = nextX;
+            transformRef.current.y = nextY;
+          }
       } else {
-        transformRef.current.x += dx;
-        transformRef.current.y += dy;
+          // --- MODO NORMAL: SWIPE LIVRE (Sem Clamping Horizontal) ---
+          // Permite arrastar para os lados livremente para indicar navegação
+          transformRef.current.x += dx;
+          // Ignora Y no swipe de galeria
       }
 
       lastTouchRef.current = {
@@ -269,16 +276,37 @@ export const HeroCarousel: React.FC = () => {
         touchEndPos.pageY - touchStartPosRef.current.y
     );
 
-    // Lógica de TAP (Clique rápido):
-    // Tolerância aumentada para 300ms e 20px
+    // Lógica de TAP (Clique rápido)
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
         performToggleZoom();
+        lastTouchRef.current = null;
+        return;
     }
 
-    // Física de término de arraste
-    lastTouchRef.current = null;
-    
-    if (transformRef.current.scale < 1) {
+    // Lógica de SWIPE (Troca de Slide) se escala for 1
+    if (transformRef.current.scale === 1) {
+        const swipeThreshold = 70; // Distância mínima para trocar
+        
+        if (transformRef.current.x < -swipeThreshold) {
+            // Arrastou para esquerda -> PRÓXIMO
+            handleSwipeNavigation('next');
+        } else if (transformRef.current.x > swipeThreshold) {
+            // Arrastou para direita -> ANTERIOR
+            handleSwipeNavigation('prev');
+        } else {
+            // Não arrastou o suficiente -> BOUNCE BACK (Volta pro meio)
+            if (transformRef.current.x !== 0) {
+                transformRef.current.x = 0;
+                if (imgRef.current) {
+                    imgRef.current.style.transition = "transform 0.2s ease-out";
+                    updateImageTransform();
+                    setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
+                }
+            }
+        }
+    } 
+    // Lógica de REBOTE do Zoom (se diminuir menos que 1)
+    else if (transformRef.current.scale < 1) {
       transformRef.current = { x: 0, y: 0, scale: 1 };
       if (imgRef.current) {
         imgRef.current.style.transition = "transform 0.3s ease-out";
@@ -288,6 +316,8 @@ export const HeroCarousel: React.FC = () => {
         }, 300);
       }
     }
+
+    lastTouchRef.current = null;
   };
 
   return (
@@ -405,28 +435,10 @@ export const HeroCarousel: React.FC = () => {
             />
           </div>
           
-          {/* UI Control: Títulos e Navegação Manual (Desaparece no Zoom) */}
+          {/* UI Control: Apenas Título e Pontinhos (Botões de navegação removidos para usar Swipe) */}
           <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
-             {/* Área Superior (Vazia para não cobrir botão fechar) */}
+             {/* Área Superior */}
              <div></div>
-
-             {/* Setas de Navegação do Modal */}
-             <div className="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-auto">
-                 <button 
-                    onClick={prevModalSlide} 
-                    className="bg-white/80 hover:bg-white text-slate-800 p-3 rounded-full shadow-lg backdrop-blur-sm active:scale-95 border border-slate-100"
-                 >
-                    <ChevronLeft size={24} />
-                 </button>
-             </div>
-             <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-auto">
-                 <button 
-                    onClick={nextModalSlide} 
-                    className="bg-white/80 hover:bg-white text-slate-800 p-3 rounded-full shadow-lg backdrop-blur-sm active:scale-95 border border-slate-100"
-                 >
-                    <ChevronRight size={24} />
-                 </button>
-             </div>
 
              {/* Rodapé com Título e Dots */}
              <div className="text-center text-slate-500 pointer-events-auto bg-white/90 backdrop-blur-md mx-6 p-4 rounded-2xl shadow-sm border border-slate-100">
