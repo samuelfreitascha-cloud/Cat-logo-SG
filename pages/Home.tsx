@@ -209,6 +209,7 @@ export const Home: React.FC = () => {
         <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar">
           {[
             { name: 'Praia', icon: Umbrella, color: 'text-primary', bg: 'bg-primary/10' },
+            { name: 'Jardim', icon: Armchair, color: 'text-slate-500', bg: 'bg-slate-100' },
             { name: 'Pet Shop', icon: PawPrint, color: 'text-slate-500', bg: 'bg-slate-100' },
             { name: 'Casa', icon: House, color: 'text-slate-500', bg: 'bg-slate-100' },
             { name: 'Ofertas', icon: Tag, color: 'text-slate-500', bg: 'bg-slate-100' },

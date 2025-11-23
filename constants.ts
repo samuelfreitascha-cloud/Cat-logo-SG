@@ -77,11 +77,23 @@ export const PRODUCTS: Product[] = [
     color: 'Branco',
     externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20a%20Base%20para%20Guarda-Sol',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
+  },
+  {
+    id: '7',
+    name: 'Kit 2 Potes Porcelana',
+    description: 'Cães e Gatos - Azul Ração/Água',
+    price: 119.90,
+    image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=2000&auto=format&fit=crop',
+    category: 'Pet Shop',
+    color: 'Azul',
+    externalUrl: 'https://produto.mercadolivre.com.br/MLB-5321526770-kit-2-potes-porcelana-ces-e-gatos-azul-raco-agua-tam-medio-_JM?searchVariation=183155531950&pdp_filters=seller_id%3A306201244#polycard_client=search-nordic&searchVariation=183155531950&search_layout=grid&position=1&type=item&tracking_id=43876292-b0b2-4516-bd74-8a65f6372991',
+    infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
   }
 ];
 
 export const CATEGORIES: Category[] = [
   { id: '1', name: 'Praia', icon: 'umbrella' },
+  { id: '2', name: 'Jardim', icon: 'armchair' },
   { id: '3', name: 'Pet Shop', icon: 'paw-print' },
   { id: '4', name: 'Casa', icon: 'house' },
   { id: '5', name: 'Ofertas', icon: 'tag' },
