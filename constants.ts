@@ -1,4 +1,5 @@
 
+
 import { Product, Category } from './types';
 
 export const PRODUCTS: Product[] = [
@@ -82,6 +83,7 @@ export const PRODUCTS: Product[] = [
 export const CATEGORIES: Category[] = [
   { id: '1', name: 'Praia', icon: 'umbrella' },
   { id: '2', name: 'Jardim', icon: 'armchair' },
-  { id: '3', name: 'Casa', icon: 'sofa' },
-  { id: '4', name: 'Ofertas', icon: 'tag' },
+  { id: '3', name: 'Pet Shop', icon: 'paw-print' },
+  { id: '4', name: 'Casa', icon: 'house' },
+  { id: '5', name: 'Ofertas', icon: 'tag' },
 ];

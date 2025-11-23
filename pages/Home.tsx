@@ -1,6 +1,7 @@
 
+
 import React, { useState } from 'react';
-import { Bell, Search, Umbrella, Armchair, Sofa, Tag, ArrowLeft, CheckCheck } from 'lucide-react';
+import { Bell, Search, Umbrella, Armchair, PawPrint, Tag, ArrowLeft, CheckCheck, House } from 'lucide-react';
 import { PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { useNavigate } from 'react-router-dom';
@@ -208,7 +209,8 @@ export const Home: React.FC = () => {
           {[
             { name: 'Praia', icon: Umbrella, color: 'text-primary', bg: 'bg-primary/10' },
             { name: 'Jardim', icon: Armchair, color: 'text-slate-500', bg: 'bg-slate-100' },
-            { name: 'Casa', icon: Sofa, color: 'text-slate-500', bg: 'bg-slate-100' },
+            { name: 'Pet Shop', icon: PawPrint, color: 'text-slate-500', bg: 'bg-slate-100' },
+            { name: 'Casa', icon: House, color: 'text-slate-500', bg: 'bg-slate-100' },
             { name: 'Ofertas', icon: Tag, color: 'text-slate-500', bg: 'bg-slate-100' },
           ].map((cat, idx) => (
             <button 
