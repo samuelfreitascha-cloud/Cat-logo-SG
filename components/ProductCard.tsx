@@ -62,7 +62,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   // SEGURANÇA CONTRA TRAVAMENTO:
-  // Sempre que a imagem muda, reseta transforms
+  // Sempre que a imagem muda, reseta transforms E destrava imediatamente
   useEffect(() => {
     if (isZoomOpen) {
         transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -70,8 +70,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             imgRef.current.style.transition = 'none';
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
-        // Libera a animação (Redundância 1)
-        setTimeout(() => { isAnimatingRef.current = false; }, 100);
+        // DESBLOQUEIO IMEDIATO
+        isAnimatingRef.current = false;
     }
   }, [activeImageIndex, showInfoImage, isZoomOpen]);
 
@@ -108,13 +108,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // FAILSAFE: Se estiver "animando" há mais de 300ms, é um bug. Destrava.
+    // CONTROLE AGRESSIVO:
+    // Se estiver animando, assume o controle imediatamente.
     if (isAnimatingRef.current) {
-        if (Date.now() - animationStartTimeRef.current > 300) {
-            isAnimatingRef.current = false;
-        } else {
-            return;
-        }
+        isAnimatingRef.current = false;
     }
 
     // IMPORTANTE: Mata qualquer transição anterior IMEDIATAMENTE
@@ -155,8 +152,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
-    // Verifica se já está animando recentemente
-    if (isAnimatingRef.current && Date.now() - animationStartTimeRef.current < 300) return;
+    if (isAnimatingRef.current && Date.now() - animationStartTimeRef.current < 150) return;
 
     // Não faz nada se for imagem única e não for Saber Mais
     if (images.length <= 1 && !showInfoImage) {
@@ -190,17 +186,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             else setActiveImageIndex(images.length - 1);
         }
 
-        // useEffect cuidará do reset visual
+        // useEffect cuidará do reset visual e desbloqueio
         setZoomMode(false);
-
-        // Redundância 2: Força destravamento
-        setTimeout(() => { isAnimatingRef.current = false; }, 50);
     }, 200);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.cancelable) e.preventDefault();
-    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = false; // Garante que estamos interagindo
+
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
@@ -259,8 +253,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (isAnimatingRef.current) return;
-    
     const timeDiff = Date.now() - touchStartTimeRef.current;
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(

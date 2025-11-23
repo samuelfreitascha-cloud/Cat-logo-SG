@@ -82,7 +82,7 @@ export const HeroCarousel: React.FC = () => {
   }, [currentIndex, imageErrors, isZoomOpen]);
 
   // SEGURANÇA CONTRA TRAVAMENTO:
-  // Sempre que o índice mudar, forçamos o reset das transformações.
+  // Sempre que o índice mudar, forçamos o reset das transformações e liberamos a animação IMEDIATAMENTE.
   useEffect(() => {
     if (isZoomOpen) {
         transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -90,8 +90,8 @@ export const HeroCarousel: React.FC = () => {
             imgRef.current.style.transition = 'none';
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
-        // Libera a animação (Redundância 1)
-        setTimeout(() => { isAnimatingRef.current = false; }, 100);
+        // DESBLOQUEIO IMEDIATO (Sem setTimeout)
+        isAnimatingRef.current = false;
     }
   }, [currentIndex, isZoomOpen]);
 
@@ -137,8 +137,8 @@ export const HeroCarousel: React.FC = () => {
 
   // Funções de navegação dentro do Modal (Agora acionadas por GESTOS)
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
-    // Verifica se já está animando recentemente (menos de 300ms)
-    if (isAnimatingRef.current && Date.now() - animationStartTimeRef.current < 300) return;
+    // Apenas evita spam muito rápido, mas permite override
+    if (isAnimatingRef.current && Date.now() - animationStartTimeRef.current < 150) return;
     
     isAnimatingRef.current = true;
     animationStartTimeRef.current = Date.now();
@@ -161,9 +161,7 @@ export const HeroCarousel: React.FC = () => {
         }
         
         setZoomMode(false); 
-        
-        // Redundância 2: Força destravamento caso o useEffect falhe
-        setTimeout(() => { isAnimatingRef.current = false; }, 50);
+        // O useEffect vai destravar isAnimatingRef.current
     }, 200);
   };
 
@@ -217,18 +215,20 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // FAILSAFE: Se estiver "animando" há mais de 300ms, é um bug. Destrava.
+    // CONTROLE AGRESSIVO:
+    // Se estiver animando, CANCELA A ANIMAÇÃO e assume o controle.
+    // Não retornamos (return) mais. O dedo do usuário tem prioridade absoluta.
     if (isAnimatingRef.current) {
-        if (Date.now() - animationStartTimeRef.current > 300) {
-            isAnimatingRef.current = false;
-        } else {
-            return;
-        }
+        isAnimatingRef.current = false;
     }
 
     // IMPORTANTE: Mata qualquer transição anterior IMEDIATAMENTE
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
+        // Se pegamos a animação no meio, "congelamos" onde está visualmente?
+        // Para simplificar e evitar bugs visuais, não recalculamos o transform atual,
+        // pois isso exigiria getComputedStyle (lento).
+        // Assumimos que o usuário quer começar a interagir.
     }
 
     // Registra dados para detecção de TAP
@@ -265,7 +265,9 @@ export const HeroCarousel: React.FC = () => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.cancelable) e.preventDefault();
-    if (isAnimatingRef.current) return;
+    // Se o usuário estiver interagindo, garantimos que não está "animando"
+    isAnimatingRef.current = false; 
+
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
@@ -318,8 +320,6 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (isAnimatingRef.current) return;
-    
     const timeDiff = Date.now() - touchStartTimeRef.current;
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(
@@ -338,7 +338,6 @@ export const HeroCarousel: React.FC = () => {
     // Se a escala final for maior que 1.1, o usuário estava dando zoom. 
     // NUNCA deve trocar de slide se estiver com zoom.
     if (transformRef.current.scale > 1.1) {
-       // Apenas limpa o toque. O usuário está olhando detalhes.
        lastTouchRef.current = null;
        return; 
     }
