@@ -405,36 +405,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                 </div>
                 
                 <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
-                    <div className="w-full flex justify-between px-4 mt-16 pointer-events-auto">
-                        {!showInfoImage && images.length > 1 && (
-                            <>
-                                <button onClick={prevImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
-                                    <ChevronLeft size={24} />
-                                </button>
-                                <button onClick={nextImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
-                                    <ChevronRight size={24} />
-                                </button>
-                            </>
-                        )}
-                    </div>
                     
-                    <div className="flex flex-col gap-4 items-center mb-6 pointer-events-auto">
-                         {/* Thumbnails */}
-                         {!showInfoImage && images.length > 1 && (
-                             <div className="flex gap-2 overflow-x-auto max-w-[80vw] p-2 no-scrollbar bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-100 shadow-sm">
-                                 {images.map((img, idx) => (
-                                     <button 
-                                         key={idx}
-                                         onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); }}
-                                         className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${idx === activeImageIndex ? 'border-primary scale-105' : 'border-transparent opacity-70'}`}
-                                     >
-                                         <img src={img} className="w-full h-full object-cover" alt="" />
-                                     </button>
-                                 ))}
-                             </div>
-                         )}
+                    {/* TÍTULO NO TOPO */}
+                    <div className="w-full flex justify-center mt-6 pointer-events-auto z-40">
+                         <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-12">
+                             <h2 className="text-lg font-bold text-slate-900 leading-tight">{product.name}</h2>
+                             {!showInfoImage && <p className="text-xs text-slate-500">{activeImageIndex + 1} / {images.length}</p>}
+                         </div>
+                    </div>
 
-                         {/* Botão Saber Mais */}
+                    {/* SETAS CENTRALIZADAS */}
+                    {!showInfoImage && images.length > 1 && (
+                        <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between px-4 pointer-events-auto z-30">
+                            <button onClick={prevImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
+                                <ChevronLeft size={24} />
+                            </button>
+                            <button onClick={nextImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
+                                <ChevronRight size={24} />
+                            </button>
+                        </div>
+                    )}
+                    
+                    <div className="flex flex-col gap-4 items-center mb-6 pointer-events-auto z-40">
+                         
+                         {/* BOTÃO SABER MAIS (ACIMA DAS THUMBS) */}
                          {product.infoImage && (
                              <button 
                                  onClick={toggleInfoImage}
@@ -454,10 +448,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                              </button>
                          )}
 
-                         <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-4">
-                             <h2 className="text-lg font-bold text-slate-900">{product.name}</h2>
-                             {!showInfoImage && <p className="text-xs text-slate-500">{activeImageIndex + 1} / {images.length}</p>}
-                         </div>
+                         {/* THUMBNAILS (EM BAIXO) */}
+                         {!showInfoImage && images.length > 1 && (
+                             <div className="flex gap-2 overflow-x-auto max-w-[90vw] p-2 no-scrollbar bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-100 shadow-sm">
+                                 {images.map((img, idx) => (
+                                     <button 
+                                         key={idx}
+                                         onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); }}
+                                         className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${idx === activeImageIndex ? 'border-primary scale-105' : 'border-transparent opacity-70'}`}
+                                     >
+                                         <img src={img} className="w-full h-full object-cover" alt="" />
+                                     </button>
+                                 ))}
+                             </div>
+                         )}
+
                     </div>
                 </div>
             </div>
@@ -530,36 +535,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                 </div>
                 
                 <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
-                    <div className="w-full flex justify-between px-4 mt-16 pointer-events-auto">
-                        {!showInfoImage && images.length > 1 && (
-                            <>
-                                <button onClick={prevImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
-                                    <ChevronLeft size={24} />
-                                </button>
-                                <button onClick={nextImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
-                                    <ChevronRight size={24} />
-                                </button>
-                            </>
-                        )}
-                    </div>
                     
-                    <div className="flex flex-col gap-4 items-center mb-6 pointer-events-auto">
-                         {/* Thumbnails */}
-                         {!showInfoImage && images.length > 1 && (
-                             <div className="flex gap-2 overflow-x-auto max-w-[80vw] p-2 no-scrollbar bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-100 shadow-sm">
-                                 {images.map((img, idx) => (
-                                     <button 
-                                         key={idx}
-                                         onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); }}
-                                         className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${idx === activeImageIndex ? 'border-primary scale-105' : 'border-transparent opacity-70'}`}
-                                     >
-                                         <img src={img} className="w-full h-full object-cover" alt="" />
-                                     </button>
-                                 ))}
-                             </div>
-                         )}
+                    {/* TÍTULO NO TOPO */}
+                    <div className="w-full flex justify-center mt-6 pointer-events-auto z-40">
+                         <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-12">
+                             <h2 className="text-lg font-bold text-slate-900 leading-tight">{product.name}</h2>
+                             {!showInfoImage && <p className="text-xs text-slate-500">{activeImageIndex + 1} / {images.length}</p>}
+                         </div>
+                    </div>
 
-                         {/* Botão Saber Mais */}
+                    {/* SETAS CENTRALIZADAS */}
+                    {!showInfoImage && images.length > 1 && (
+                        <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between px-4 pointer-events-auto z-30">
+                            <button onClick={prevImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
+                                <ChevronLeft size={24} />
+                            </button>
+                            <button onClick={nextImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
+                                <ChevronRight size={24} />
+                            </button>
+                        </div>
+                    )}
+                    
+                    <div className="flex flex-col gap-4 items-center mb-6 pointer-events-auto z-40">
+                         
+                         {/* BOTÃO SABER MAIS (ACIMA DAS THUMBS) */}
                          {product.infoImage && (
                              <button 
                                  onClick={toggleInfoImage}
@@ -579,10 +578,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                              </button>
                          )}
 
-                         <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-4">
-                             <h2 className="text-lg font-bold text-slate-900">{product.name}</h2>
-                             {!showInfoImage && <p className="text-xs text-slate-500">{activeImageIndex + 1} / {images.length}</p>}
-                         </div>
+                         {/* THUMBNAILS (EM BAIXO) */}
+                         {!showInfoImage && images.length > 1 && (
+                             <div className="flex gap-2 overflow-x-auto max-w-[90vw] p-2 no-scrollbar bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-100 shadow-sm">
+                                 {images.map((img, idx) => (
+                                     <button 
+                                         key={idx}
+                                         onClick={(e) => { e.stopPropagation(); setActiveImageIndex(idx); }}
+                                         className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${idx === activeImageIndex ? 'border-primary scale-105' : 'border-transparent opacity-70'}`}
+                                     >
+                                         <img src={img} className="w-full h-full object-cover" alt="" />
+                                     </button>
+                                 ))}
+                             </div>
+                         )}
+
                     </div>
                 </div>
             </div>
