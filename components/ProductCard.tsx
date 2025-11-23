@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, ZoomIn, ChevronLeft, ChevronRight, ShoppingBag, MessageCircle, Info, Image as ImageIcon } from 'lucide-react';
 import { Product } from '../types';
@@ -26,9 +27,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   
   const isAnimatingRef = useRef(false); 
   const animationStartTimeRef = useRef(0);
-
-  // Timer de Auto-Reset (3 segundos)
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const layoutCacheRef = useRef({
     imgWidth: 0,
@@ -61,34 +59,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
         isAnimatingRef.current = false;
-        
-        // Limpa timer ao mudar
-        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     }
   }, [activeImageIndex, showInfoImage, isZoomOpen]);
-
-  // Função para iniciar o Auto-Reset após 3 segundos
-  const startAutoResetTimer = () => {
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    
-    // Só agenda o reset se estiver com zoom ou fora de centro
-    if (transformRef.current.scale > 1 || transformRef.current.x !== 0 || transformRef.current.y !== 0) {
-        resetTimerRef.current = setTimeout(() => {
-            // Executa o reset suave
-            setZoomMode(false);
-            transformRef.current = { x: 0, y: 0, scale: 1 };
-            if (imgRef.current) {
-                imgRef.current.style.transition = "transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)"; // Suave
-                imgRef.current.style.transform = "translate3d(0,0,0) scale(1)";
-                
-                // Remove a transição após o movimento terminar
-                setTimeout(() => {
-                    if (imgRef.current) imgRef.current.style.transition = "none";
-                }, 500);
-            }
-        }, 3000); // 3 Segundos
-    }
-  };
 
   const updateImageTransform = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -119,9 +91,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // 1. Limpa timer ao iniciar toque
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-
     if (isAnimatingRef.current) {
         isAnimatingRef.current = false;
     }
@@ -196,9 +165,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     if (e.cancelable) e.preventDefault();
     isAnimatingRef.current = false;
     
-    // Limpa timer durante o movimento
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
@@ -249,17 +215,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
               updateImageTransform();
               setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
           }
-          if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       } else {
           setZoomMode(true);
-          startAutoResetTimer();
       }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    // Ao soltar o dedo, inicia o timer
-    startAutoResetTimer();
-
     const timeDiff = Date.now() - touchStartTimeRef.current;
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(
@@ -319,7 +280,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const closeZoom = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     setIsZoomOpen(false);
     setShowInfoImage(false);
     setZoomMode(false);

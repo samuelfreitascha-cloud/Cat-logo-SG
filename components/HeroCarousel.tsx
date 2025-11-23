@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle, ZoomIn, X } from 'lucide-react';
 
@@ -53,9 +54,6 @@ export const HeroCarousel: React.FC = () => {
   const isAnimatingRef = useRef(false); 
   const animationStartTimeRef = useRef(0);
 
-  // Timer de Auto-Reset (3 segundos)
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Cache de Layout
   const layoutCacheRef = useRef({
     imgWidth: 0,
@@ -92,34 +90,8 @@ export const HeroCarousel: React.FC = () => {
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
         isAnimatingRef.current = false;
-        
-        // Limpa timer ao abrir/mudar
-        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     }
   }, [currentIndex, isZoomOpen]);
-
-  // Função para iniciar o Auto-Reset após 3 segundos
-  const startAutoResetTimer = () => {
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    
-    // Só agenda o reset se estiver com zoom ou fora de centro
-    if (transformRef.current.scale > 1 || transformRef.current.x !== 0 || transformRef.current.y !== 0) {
-        resetTimerRef.current = setTimeout(() => {
-            // Executa o reset suave
-            setZoomMode(false);
-            transformRef.current = { x: 0, y: 0, scale: 1 };
-            if (imgRef.current) {
-                imgRef.current.style.transition = "transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)"; // Suave
-                imgRef.current.style.transform = "translate3d(0,0,0) scale(1)";
-                
-                // Remove a transição após o movimento terminar
-                setTimeout(() => {
-                    if (imgRef.current) imgRef.current.style.transition = "none";
-                }, 500);
-            }
-        }, 3000); // 3 Segundos
-    }
-  };
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
@@ -147,7 +119,6 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const closeZoom = () => {
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     setIsZoomOpen(false);
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -189,13 +160,9 @@ export const HeroCarousel: React.FC = () => {
               updateImageTransform();
               setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
           }
-          // Limpa timer pois já resetou
-          if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       } else {
           // Ativar Zoom
           setZoomMode(true);
-          // Inicia timer caso o usuário ative e não mexa
-          startAutoResetTimer();
       }
   };
 
@@ -229,9 +196,6 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // 1. Limpa qualquer timer de reset pendente (O usuário está interagindo!)
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-
     if (isAnimatingRef.current) {
         isAnimatingRef.current = false;
     }
@@ -269,10 +233,6 @@ export const HeroCarousel: React.FC = () => {
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.cancelable) e.preventDefault();
     isAnimatingRef.current = false; 
-
-    // Reinicia timer de reset se o usuário parar de mover mas segurar?
-    // Não, enquanto move, sem timer. O timer é no End.
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
 
     if (!lastTouchRef.current) return;
     
@@ -322,9 +282,6 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    // Ao soltar o dedo, inicia o timer de 3 segundos para resetar o zoom
-    startAutoResetTimer();
-
     const timeDiff = Date.now() - touchStartTimeRef.current;
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(
