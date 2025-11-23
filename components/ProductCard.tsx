@@ -406,13 +406,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                 
                 <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
                     
-                    {/* TÍTULO NO TOPO */}
-                    <div className="w-full flex justify-center mt-6 pointer-events-auto z-40">
-                         <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-12">
-                             <h2 className="text-lg font-bold text-slate-900 leading-tight">{product.name}</h2>
-                             {!showInfoImage && <p className="text-xs text-slate-500">{activeImageIndex + 1} / {images.length}</p>}
-                         </div>
-                    </div>
+                    {/* TÍTULO NO TOPO (Apenas se não estiver no modo Saber Mais) */}
+                    {!showInfoImage ? (
+                      <div className="w-full flex justify-center mt-6 pointer-events-auto z-40">
+                           <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-12">
+                               <h2 className="text-lg font-bold text-slate-900 leading-tight">{product.name}</h2>
+                               <p className="text-xs text-slate-500">{activeImageIndex + 1} / {images.length}</p>
+                           </div>
+                      </div>
+                    ) : (
+                      /* Espaçador para manter layout */
+                      <div className="mt-6 h-12"></div>
+                    )}
 
                     {/* SETAS CENTRALIZADAS */}
                     {!showInfoImage && images.length > 1 && (
@@ -536,13 +541,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                 
                 <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
                     
-                    {/* TÍTULO NO TOPO */}
-                    <div className="w-full flex justify-center mt-6 pointer-events-auto z-40">
-                         <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-12">
-                             <h2 className="text-lg font-bold text-slate-900 leading-tight">{product.name}</h2>
-                             {!showInfoImage && <p className="text-xs text-slate-500">{activeImageIndex + 1} / {images.length}</p>}
-                         </div>
-                    </div>
+                    {/* TÍTULO NO TOPO (Apenas se não estiver no modo Saber Mais) */}
+                    {!showInfoImage ? (
+                      <div className="w-full flex justify-center mt-6 pointer-events-auto z-40">
+                           <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-12">
+                               <h2 className="text-lg font-bold text-slate-900 leading-tight">{product.name}</h2>
+                               <p className="text-xs text-slate-500">{activeImageIndex + 1} / {images.length}</p>
+                           </div>
+                      </div>
+                    ) : (
+                      /* Espaçador para manter layout */
+                      <div className="mt-6 h-12"></div>
+                    )}
 
                     {/* SETAS CENTRALIZADAS */}
                     {!showInfoImage && images.length > 1 && (
