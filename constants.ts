@@ -62,13 +62,13 @@ export const PRODUCTS: Product[] = [
   },
   {
     id: '5',
-    name: 'Guarda-Sol Articulado',
+    name: 'Ombrelone lona náutica',
     description: 'Alumínio com inclinação',
     price: 210.00,
-    image: 'https://images.unsplash.com/photo-1535262412227-85541e910204?q=80&w=2069&auto=format&fit=crop',
+    image: 'https://res.cloudinary.com/drdktfy8u/image/upload/v1763931619/Ombrelone-Corona_qu2el8.png',
     category: 'Praia',
     color: 'Listrado',
-    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Guarda-Sol%20Articulado',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Ombrelone%20lona%20n%C3%A1utica',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
   },
   {
