@@ -25,7 +25,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
   const rafRef = useRef<number | null>(null); // Request Animation Frame
+  
+  // Controle de Animação e Segurança
   const isAnimatingRef = useRef(false); // Trava para evitar toques durante animação
+  const animationStartTimeRef = useRef(0); // Timestamp para destravar
 
   // Cache de Layout para evitar reflow (Layout Thrashing)
   const layoutCacheRef = useRef({
@@ -67,7 +70,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             imgRef.current.style.transition = 'none';
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
-        setTimeout(() => { isAnimatingRef.current = false; }, 50);
+        // Libera a animação (Redundância 1)
+        setTimeout(() => { isAnimatingRef.current = false; }, 100);
     }
   }, [activeImageIndex, showInfoImage, isZoomOpen]);
 
@@ -104,7 +108,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (isAnimatingRef.current) return;
+    // FAILSAFE: Se estiver "animando" há mais de 300ms, é um bug. Destrava.
+    if (isAnimatingRef.current) {
+        if (Date.now() - animationStartTimeRef.current > 300) {
+            isAnimatingRef.current = false;
+        } else {
+            return;
+        }
+    }
 
     // IMPORTANTE: Mata qualquer transição anterior IMEDIATAMENTE
     if (imgRef.current) {
@@ -144,7 +155,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
-    if (isAnimatingRef.current) return;
+    // Verifica se já está animando recentemente
+    if (isAnimatingRef.current && Date.now() - animationStartTimeRef.current < 300) return;
+
     // Não faz nada se for imagem única e não for Saber Mais
     if (images.length <= 1 && !showInfoImage) {
         // Reset visual apenas
@@ -158,6 +171,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     }
     
     isAnimatingRef.current = true;
+    animationStartTimeRef.current = Date.now();
 
     const screenWidth = window.innerWidth;
     const exitX = direction === 'next' ? -screenWidth : screenWidth;
@@ -178,6 +192,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
         // useEffect cuidará do reset visual
         setZoomMode(false);
+
+        // Redundância 2: Força destravamento
+        setTimeout(() => { isAnimatingRef.current = false; }, 50);
     }, 200);
   };
 
@@ -306,6 +323,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     setIsZoomOpen(true);
     setZoomMode(false); // Começa no modo Galeria (sem zoom habilitado)
     transformRef.current = { x: 0, y: 0, scale: 1 };
+    isAnimatingRef.current = false; // Garante destravamento ao abrir
   };
 
   const closeZoom = (e?: React.MouseEvent) => {
@@ -315,6 +333,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    isAnimatingRef.current = false; // Garante destravamento ao fechar
   };
 
   const nextImage = (e: React.MouseEvent) => {

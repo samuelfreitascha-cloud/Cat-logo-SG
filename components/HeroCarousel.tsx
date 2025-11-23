@@ -49,7 +49,10 @@ export const HeroCarousel: React.FC = () => {
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
   const rafRef = useRef<number | null>(null); // Request Animation Frame
-  const isAnimatingRef = useRef(false); // Trava para evitar toques durante animação
+  
+  // Controle de Animação e Segurança
+  const isAnimatingRef = useRef(false); 
+  const animationStartTimeRef = useRef(0); // Timestamp para destravar em caso de erro
 
   // Cache de Layout para evitar reflow (Layout Thrashing)
   const layoutCacheRef = useRef({
@@ -87,8 +90,8 @@ export const HeroCarousel: React.FC = () => {
             imgRef.current.style.transition = 'none';
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
-        // Libera a animação
-        setTimeout(() => { isAnimatingRef.current = false; }, 50);
+        // Libera a animação (Redundância 1)
+        setTimeout(() => { isAnimatingRef.current = false; }, 100);
     }
   }, [currentIndex, isZoomOpen]);
 
@@ -121,6 +124,7 @@ export const HeroCarousel: React.FC = () => {
     setIsZoomOpen(true);
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
+    isAnimatingRef.current = false; // Garante destravamento ao abrir
   };
 
   const closeZoom = () => {
@@ -128,12 +132,16 @@ export const HeroCarousel: React.FC = () => {
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    isAnimatingRef.current = false; // Garante destravamento ao fechar
   };
 
   // Funções de navegação dentro do Modal (Agora acionadas por GESTOS)
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
-    if (isAnimatingRef.current) return;
+    // Verifica se já está animando recentemente (menos de 300ms)
+    if (isAnimatingRef.current && Date.now() - animationStartTimeRef.current < 300) return;
+    
     isAnimatingRef.current = true;
+    animationStartTimeRef.current = Date.now();
 
     const screenWidth = window.innerWidth;
     const exitX = direction === 'next' ? -screenWidth : screenWidth;
@@ -152,8 +160,10 @@ export const HeroCarousel: React.FC = () => {
             setCurrentIndex((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length);
         }
         
-        // O useEffect cuidará do reset visual
         setZoomMode(false); 
+        
+        // Redundância 2: Força destravamento caso o useEffect falhe
+        setTimeout(() => { isAnimatingRef.current = false; }, 50);
     }, 200);
   };
 
@@ -207,7 +217,14 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (isAnimatingRef.current) return;
+    // FAILSAFE: Se estiver "animando" há mais de 300ms, é um bug. Destrava.
+    if (isAnimatingRef.current) {
+        if (Date.now() - animationStartTimeRef.current > 300) {
+            isAnimatingRef.current = false;
+        } else {
+            return;
+        }
+    }
 
     // IMPORTANTE: Mata qualquer transição anterior IMEDIATAMENTE
     if (imgRef.current) {

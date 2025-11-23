@@ -205,7 +205,8 @@ export const Home: React.FC = () => {
       {/* Categories */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4 text-slate-800">Categorias</h3>
-        <div className="grid grid-cols-4 gap-4 text-center">
+        {/* Layout alterado de Grid para Flex Row (Linha única com scroll) */}
+        <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar">
           {[
             { name: 'Praia', icon: Umbrella, color: 'text-primary', bg: 'bg-primary/10' },
             { name: 'Jardim', icon: Armchair, color: 'text-slate-500', bg: 'bg-slate-100' },
@@ -216,7 +217,8 @@ export const Home: React.FC = () => {
             <button 
               key={idx} 
               onClick={() => navigate('/products')}
-              className="flex flex-col items-center space-y-2 group"
+              // Adicionado min-w para garantir que os ícones não encolham demais
+              className="flex flex-col items-center space-y-2 group min-w-[72px]"
             >
               <div className={`w-16 h-16 ${cat.bg} rounded-2xl flex items-center justify-center transition-all group-hover:scale-95 group-active:scale-90`}>
                 <cat.icon className={`${cat.color} text-3xl`} size={28} strokeWidth={1.5} />
