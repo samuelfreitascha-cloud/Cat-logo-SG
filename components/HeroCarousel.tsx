@@ -90,6 +90,7 @@ export const HeroCarousel: React.FC = () => {
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
         isAnimatingRef.current = false;
+        setZoomMode(false);
     }
   }, [currentIndex, isZoomOpen]);
 
@@ -146,7 +147,13 @@ export const HeroCarousel: React.FC = () => {
         } else {
             setCurrentIndex((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length);
         }
-        setZoomMode(false); 
+        // Force reset
+        transformRef.current = { x: 0, y: 0, scale: 1 };
+        setZoomMode(false);
+        if (imgRef.current) {
+            imgRef.current.style.transition = "none";
+            imgRef.current.style.transform = "translate3d(0,0,0) scale(1)";
+        }
     }, 200);
   };
 
@@ -268,6 +275,7 @@ export const HeroCarousel: React.FC = () => {
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
+          // If not zoomed significantly, just move X for potential swipe
           transformRef.current.x += dx;
       }
 
@@ -289,42 +297,48 @@ export const HeroCarousel: React.FC = () => {
         touchEndPos.pageY - touchStartPosRef.current.y
     );
 
+    // Click/Tap detection
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
         performToggleZoom();
         lastTouchRef.current = null;
         return;
     }
 
+    // Significant Zoom Active
     if (transformRef.current.scale > 1.1) {
        lastTouchRef.current = null;
        return; 
     }
 
-    if (transformRef.current.scale > 1 && transformRef.current.scale <= 1.1) {
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        setZoomMode(false);
-        if (imgRef.current) {
-            imgRef.current.style.transition = "transform 0.3s ease-out";
-            updateImageTransform();
-            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
-        }
-        lastTouchRef.current = null;
-        return;
-    }
+    // Slight Zoom or Normal State - Reset to 1.0 to enable Swipe next time
+    // This is the critical fix: If we are close to 1, snap to 1 and decide on swipe
+    const wasZoomed = transformRef.current.scale !== 1;
+    transformRef.current.scale = 1;
+    transformRef.current.y = 0; // Reset Y always if we are snapping back
+    setZoomMode(false); // Ensure react state knows we are not zoomed
 
+    // Logic for Swipe vs Reset
     const swipeThreshold = 70; 
     
-    if (transformRef.current.x < -swipeThreshold) {
-        handleSwipeNavigation('next');
-    } else if (transformRef.current.x > swipeThreshold) {
-        handleSwipeNavigation('prev');
-    } else {
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        if (imgRef.current) {
-            imgRef.current.style.transition = "transform 0.2s ease-out";
-            updateImageTransform();
-            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
+    // Only swipe if we weren't just zooming out (prevents accidental swipe when pinch-closing)
+    if (!wasZoomed) {
+        if (transformRef.current.x < -swipeThreshold) {
+            handleSwipeNavigation('next');
+            lastTouchRef.current = null;
+            return;
+        } else if (transformRef.current.x > swipeThreshold) {
+            handleSwipeNavigation('prev');
+            lastTouchRef.current = null;
+            return;
         }
+    }
+
+    // If no swipe, snap back to center
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    if (imgRef.current) {
+        imgRef.current.style.transition = "transform 0.2s ease-out";
+        updateImageTransform();
+        setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
     }
 
     lastTouchRef.current = null;

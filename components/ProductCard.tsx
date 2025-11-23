@@ -59,6 +59,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
         isAnimatingRef.current = false;
+        setZoomMode(false);
     }
   }, [activeImageIndex, showInfoImage, isZoomOpen]);
 
@@ -157,7 +158,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             if (activeImageIndex > 0) setActiveImageIndex(prev => prev - 1);
             else setActiveImageIndex(images.length - 1);
         }
+        
+        // Force reset states after swipe
+        transformRef.current = { x: 0, y: 0, scale: 1 };
         setZoomMode(false);
+        if (imgRef.current) {
+             imgRef.current.style.transition = "none";
+             imgRef.current.style.transform = "translate3d(0,0,0) scale(1)";
+        }
     }, 200);
   };
 
@@ -239,30 +247,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
        return;
     }
 
-    if (transformRef.current.scale > 1 && transformRef.current.scale <= 1.1) {
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        setZoomMode(false);
-        if (imgRef.current) {
-            imgRef.current.style.transition = "transform 0.3s ease-out";
-            updateImageTransform();
-            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
-        }
-        lastTouchRef.current = null;
-        return;
-    }
+    // Critical fix: If scale is close to 1, force reset to 1 and decide on swipe
+    const wasZoomed = transformRef.current.scale !== 1;
+    transformRef.current.scale = 1;
+    transformRef.current.y = 0;
+    setZoomMode(false);
 
     const swipeThreshold = 70;
-    if (transformRef.current.x < -swipeThreshold) {
-        handleSwipeNavigation('next');
-    } else if (transformRef.current.x > swipeThreshold) {
-        handleSwipeNavigation('prev');
-    } else {
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        if (imgRef.current) {
-            imgRef.current.style.transition = "transform 0.2s ease-out";
-            updateImageTransform();
-            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
+
+    // Only swipe if we weren't just zooming out
+    if (!wasZoomed) {
+        if (transformRef.current.x < -swipeThreshold) {
+            handleSwipeNavigation('next');
+            lastTouchRef.current = null;
+            return;
+        } else if (transformRef.current.x > swipeThreshold) {
+            handleSwipeNavigation('prev');
+            lastTouchRef.current = null;
+            return;
         }
+    }
+
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    if (imgRef.current) {
+        imgRef.current.style.transition = "transform 0.2s ease-out";
+        updateImageTransform();
+        setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
     }
     
     lastTouchRef.current = null;
