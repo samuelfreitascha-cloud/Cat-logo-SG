@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle, ZoomIn, X } from 'lucide-react';
 
@@ -40,21 +39,24 @@ export const HeroCarousel: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
   const [isZoomOpen, setIsZoomOpen] = useState(false);
-  const [zoomMode, setZoomMode] = useState(false); // Estado para controlar 2º clique
+  const [zoomMode, setZoomMode] = useState(false); 
 
-  // Refs para animação direta (Performance Ultra Rápida)
+  // Refs para animação direta
   const imgRef = useRef<HTMLImageElement>(null);
-  const uiRef = useRef<HTMLDivElement>(null); // Controle de UI
+  const uiRef = useRef<HTMLDivElement>(null); 
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
-  const rafRef = useRef<number | null>(null); // Request Animation Frame
+  const rafRef = useRef<number | null>(null); 
   
   // Controle de Animação e Segurança
   const isAnimatingRef = useRef(false); 
-  const animationStartTimeRef = useRef(0); // Timestamp para destravar em caso de erro
+  const animationStartTimeRef = useRef(0);
 
-  // Cache de Layout para evitar reflow (Layout Thrashing)
+  // Timer de Auto-Reset (3 segundos)
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cache de Layout
   const layoutCacheRef = useRef({
     imgWidth: 0,
     imgHeight: 0,
@@ -62,18 +64,18 @@ export const HeroCarousel: React.FC = () => {
     viewportHeight: 0
   });
 
-  // Refs para detecção de TAP (Clique rápido)
   const touchStartTimeRef = useRef(0);
   const touchStartPosRef = useRef({ x: 0, y: 0 });
 
-  // Auto-play
+  // Auto-play do Carrossel (só funciona se zoom fechado)
   useEffect(() => {
     if (CAROUSEL_IMAGES.length <= 1) return;
     if (isZoomOpen) return;
     if (imageErrors[currentIndex]) return;
 
     const currentImage = CAROUSEL_IMAGES[currentIndex];
-    if (!isDirectLink(currentImage.url) && currentImage.url.includes('ibb.co')) return;
+    const looksWrong = !currentImage.url.includes('i.ibb.co') && currentImage.url.includes('ibb.co');
+    if (looksWrong) return;
 
     const interval = setInterval(() => {
       nextSlide();
@@ -81,8 +83,7 @@ export const HeroCarousel: React.FC = () => {
     return () => clearInterval(interval);
   }, [currentIndex, imageErrors, isZoomOpen]);
 
-  // SEGURANÇA CONTRA TRAVAMENTO:
-  // Sempre que o índice mudar, forçamos o reset das transformações e liberamos a animação IMEDIATAMENTE.
+  // Reset e Segurança ao mudar slide ou abrir/fechar
   useEffect(() => {
     if (isZoomOpen) {
         transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -90,10 +91,35 @@ export const HeroCarousel: React.FC = () => {
             imgRef.current.style.transition = 'none';
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
-        // DESBLOQUEIO IMEDIATO (Sem setTimeout)
         isAnimatingRef.current = false;
+        
+        // Limpa timer ao abrir/mudar
+        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     }
   }, [currentIndex, isZoomOpen]);
+
+  // Função para iniciar o Auto-Reset após 3 segundos
+  const startAutoResetTimer = () => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    
+    // Só agenda o reset se estiver com zoom ou fora de centro
+    if (transformRef.current.scale > 1 || transformRef.current.x !== 0 || transformRef.current.y !== 0) {
+        resetTimerRef.current = setTimeout(() => {
+            // Executa o reset suave
+            setZoomMode(false);
+            transformRef.current = { x: 0, y: 0, scale: 1 };
+            if (imgRef.current) {
+                imgRef.current.style.transition = "transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)"; // Suave
+                imgRef.current.style.transform = "translate3d(0,0,0) scale(1)";
+                
+                // Remove a transição após o movimento terminar
+                setTimeout(() => {
+                    if (imgRef.current) imgRef.current.style.transition = "none";
+                }, 500);
+            }
+        }, 3000); // 3 Segundos
+    }
+  };
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
@@ -111,33 +137,25 @@ export const HeroCarousel: React.FC = () => {
     setImageErrors(prev => ({ ...prev, [index]: true }));
   };
 
-  const isDirectLink = (url: string) => {
-    return url.includes('i.ibb.co') || url.match(/\.(jpeg|jpg|gif|png)$/i) != null;
-  };
-
-  // 1º Clique: Abre o modal (Modo Galeria)
   const handleZoomOpen = (index: number) => {
     const currentImage = CAROUSEL_IMAGES[index];
-    if (imageErrors[index] || (!isDirectLink(currentImage.url) && currentImage.url.includes('ibb.co'))) {
-        return;
-    }
+    if (imageErrors[index]) return;
     setIsZoomOpen(true);
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
-    isAnimatingRef.current = false; // Garante destravamento ao abrir
+    isAnimatingRef.current = false;
   };
 
   const closeZoom = () => {
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     setIsZoomOpen(false);
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    isAnimatingRef.current = false; // Garante destravamento ao fechar
+    isAnimatingRef.current = false;
   };
 
-  // Funções de navegação dentro do Modal (Agora acionadas por GESTOS)
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
-    // Apenas evita spam muito rápido, mas permite override
     if (isAnimatingRef.current && Date.now() - animationStartTimeRef.current < 150) return;
     
     isAnimatingRef.current = true;
@@ -146,29 +164,24 @@ export const HeroCarousel: React.FC = () => {
     const screenWidth = window.innerWidth;
     const exitX = direction === 'next' ? -screenWidth : screenWidth;
 
-    // 1. Anima a imagem atual saindo da tela
     if (imgRef.current) {
         imgRef.current.style.transition = "transform 0.2s ease-out";
         imgRef.current.style.transform = `translate3d(${exitX}px, 0, 0) scale(1)`;
     }
 
-    // 2. Troca o índice e reseta posição após a animação
     setTimeout(() => {
         if (direction === 'next') {
             setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
         } else {
             setCurrentIndex((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length);
         }
-        
         setZoomMode(false); 
-        // O useEffect vai destravar isAnimatingRef.current
     }, 200);
   };
 
-  // Alterna modo zoom
   const performToggleZoom = () => {
       if (zoomMode) {
-          // Reset
+          // Desativar Zoom (Reset manual)
           setZoomMode(false);
           transformRef.current = { x: 0, y: 0, scale: 1 };
           if (imgRef.current) {
@@ -176,13 +189,15 @@ export const HeroCarousel: React.FC = () => {
               updateImageTransform();
               setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
           }
+          // Limpa timer pois já resetou
+          if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       } else {
-          // Habilita Zoom
+          // Ativar Zoom
           setZoomMode(true);
+          // Inicia timer caso o usuário ative e não mexa
+          startAutoResetTimer();
       }
   };
-
-  // --- Lógica de Gestos (High Performance) ---
 
   const updateImageTransform = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -194,7 +209,6 @@ export const HeroCarousel: React.FC = () => {
     });
   };
 
-  // Atualiza UI baseado no modo
   useEffect(() => {
       if (uiRef.current) {
         const opacity = zoomMode ? '0' : '1';
@@ -215,27 +229,20 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // CONTROLE AGRESSIVO:
-    // Se estiver animando, CANCELA A ANIMAÇÃO e assume o controle.
-    // Não retornamos (return) mais. O dedo do usuário tem prioridade absoluta.
+    // 1. Limpa qualquer timer de reset pendente (O usuário está interagindo!)
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+
     if (isAnimatingRef.current) {
         isAnimatingRef.current = false;
     }
 
-    // IMPORTANTE: Mata qualquer transição anterior IMEDIATAMENTE
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
-        // Se pegamos a animação no meio, "congelamos" onde está visualmente?
-        // Para simplificar e evitar bugs visuais, não recalculamos o transform atual,
-        // pois isso exigiria getComputedStyle (lento).
-        // Assumimos que o usuário quer começar a interagir.
     }
 
-    // Registra dados para detecção de TAP
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
 
-    // CACHE DE LAYOUT: Mede tudo agora para não medir durante o movimento
     if (imgRef.current) {
         layoutCacheRef.current = {
             imgWidth: imgRef.current.offsetWidth,
@@ -245,16 +252,12 @@ export const HeroCarousel: React.FC = () => {
         };
     }
 
-    // Detecção de Pinça (2 dedos) ativa automaticamente o modo zoom
     if (e.touches.length === 2) {
       if (!zoomMode) setZoomMode(true);
-
       const dist = getDistance(e.touches);
       lastTouchRef.current = { x: 0, y: 0, dist };
       initialScaleRef.current = transformRef.current.scale;
-    } 
-    // 1 dedo
-    else if (e.touches.length === 1) {
+    } else if (e.touches.length === 1) {
       lastTouchRef.current = { 
         x: e.touches[0].pageX, 
         y: e.touches[0].pageY, 
@@ -265,8 +268,11 @@ export const HeroCarousel: React.FC = () => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.cancelable) e.preventDefault();
-    // Se o usuário estiver interagindo, garantimos que não está "animando"
     isAnimatingRef.current = false; 
+
+    // Reinicia timer de reset se o usuário parar de mover mas segurar?
+    // Não, enquanto move, sem timer. O timer é no End.
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
 
     if (!lastTouchRef.current) return;
     
@@ -283,9 +289,7 @@ export const HeroCarousel: React.FC = () => {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // Usando tolerância (1.1) - Se estiver com zoom, é PANNING (não swipe)
       if (transformRef.current.scale > 1.1) {
-          // --- MODO ZOOM: PAN COM LIMITES (Clamping) ---
           const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
           
           const currentScale = transformRef.current.scale;
@@ -298,14 +302,12 @@ export const HeroCarousel: React.FC = () => {
           let nextX = transformRef.current.x + dx;
           let nextY = transformRef.current.y + dy;
 
-          // Clamping (Limites)
           nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
           nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
           
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
-          // --- MODO NORMAL: SWIPE LIVRE ---
           transformRef.current.x += dx;
       }
 
@@ -320,6 +322,9 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    // Ao soltar o dedo, inicia o timer de 3 segundos para resetar o zoom
+    startAutoResetTimer();
+
     const timeDiff = Date.now() - touchStartTimeRef.current;
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(
@@ -327,23 +332,17 @@ export const HeroCarousel: React.FC = () => {
         touchEndPos.pageY - touchStartPosRef.current.y
     );
 
-    // Lógica de TAP (Clique rápido)
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
         performToggleZoom();
         lastTouchRef.current = null;
         return;
     }
 
-    // Lógica de PROTEÇÃO ANTI-PULO:
-    // Se a escala final for maior que 1.1, o usuário estava dando zoom. 
-    // NUNCA deve trocar de slide se estiver com zoom.
     if (transformRef.current.scale > 1.1) {
        lastTouchRef.current = null;
        return; 
     }
 
-    // Se chegamos aqui, a escala é pequena (~1).
-    // Se estiver levemente alterada (< 1.1), forçamos o reset para 1.0 para evitar sujeira
     if (transformRef.current.scale > 1 && transformRef.current.scale <= 1.1) {
         transformRef.current = { x: 0, y: 0, scale: 1 };
         setZoomMode(false);
@@ -356,8 +355,6 @@ export const HeroCarousel: React.FC = () => {
         return;
     }
 
-    // SWIPE NAVIGATION
-    // Só entra aqui se a escala for efetivamente 1 (ou menor que 1 durante bounce)
     const swipeThreshold = 70; 
     
     if (transformRef.current.x < -swipeThreshold) {
@@ -365,7 +362,6 @@ export const HeroCarousel: React.FC = () => {
     } else if (transformRef.current.x > swipeThreshold) {
         handleSwipeNavigation('prev');
     } else {
-        // Se não houve swipe suficiente, reseta posição (bounce back)
         transformRef.current = { x: 0, y: 0, scale: 1 };
         if (imgRef.current) {
             imgRef.current.style.transition = "transform 0.2s ease-out";
@@ -382,10 +378,9 @@ export const HeroCarousel: React.FC = () => {
       <div className="relative rounded-2xl overflow-hidden mb-8 shadow-xl shadow-slate-200/50 group h-64 md:h-80 bg-slate-200 cursor-pointer"
            onClick={() => handleZoomOpen(currentIndex)}
       >
-        {/* Imagens */}
         <div className="w-full h-full relative">
           {CAROUSEL_IMAGES.map((image, index) => {
-            const looksWrong = !isDirectLink(image.url) && image.url.includes('ibb.co');
+            const looksWrong = !image.url.includes('i.ibb.co') && image.url.includes('ibb.co');
             
             return (
               <div
@@ -405,25 +400,14 @@ export const HeroCarousel: React.FC = () => {
                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 text-white p-4 text-center font-sans" onClick={(e) => e.stopPropagation()}>
                     <AlertTriangle size={32} className="mb-2 text-yellow-400" />
                     <h3 className="font-bold text-base mb-1">Link incorreto</h3>
-                    <a 
-                      href={image.url} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full mt-4 text-xs font-bold"
-                    >
-                      Abrir Link Original
-                    </a>
+                    <a href={image.url} target="_blank" rel="noreferrer" className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full mt-4 text-xs font-bold">Abrir Link Original</a>
                   </div>
                 )}
                 
                 {!imageErrors[index] && !looksWrong && (
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-6 flex flex-col justify-end pointer-events-none">
-                    <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-md">
-                      {image.title}
-                    </h2>
-                    <p className="text-slate-200 text-sm drop-shadow-sm font-medium">
-                      {image.subtitle}
-                    </p>
+                    <h2 className="text-white text-2xl font-bold mb-1 drop-shadow-md">{image.title}</h2>
+                    <p className="text-slate-200 text-sm drop-shadow-sm font-medium">{image.subtitle}</p>
                     <div className="absolute top-4 right-4 bg-black/30 backdrop-blur-sm p-2 rounded-full text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <ZoomIn size={20} />
                     </div>
@@ -434,7 +418,6 @@ export const HeroCarousel: React.FC = () => {
           })}
         </div>
 
-        {/* Navegação Principal */}
         {CAROUSEL_IMAGES.length > 1 && (
           <>
             <button
@@ -464,7 +447,6 @@ export const HeroCarousel: React.FC = () => {
         )}
       </div>
 
-      {/* Modal de Zoom Interativo Otimizado */}
       {isZoomOpen && (
         <div 
           className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden"
@@ -492,17 +474,11 @@ export const HeroCarousel: React.FC = () => {
             />
           </div>
           
-          {/* UI Control: Apenas Título e Pontinhos */}
           <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
-             {/* Área Superior */}
              <div></div>
-
-             {/* Rodapé com Título e Dots */}
              <div className="text-center text-slate-500 pointer-events-auto bg-white/90 backdrop-blur-md mx-6 p-4 rounded-2xl shadow-sm border border-slate-100">
                 <h2 className="text-xl font-bold mb-1 text-slate-900">{CAROUSEL_IMAGES[currentIndex].title}</h2>
-                <p className="text-sm mb-3">
-                   {CAROUSEL_IMAGES[currentIndex].subtitle}
-                </p>
+                <p className="text-sm mb-3">{CAROUSEL_IMAGES[currentIndex].subtitle}</p>
                 <div className="flex justify-center gap-2">
                    {CAROUSEL_IMAGES.map((_, idx) => (
                        <div 
