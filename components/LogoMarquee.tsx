@@ -16,11 +16,11 @@ export const LogoMarquee: React.FC = () => {
     <div className="relative w-full overflow-hidden mb-6 group">
       <div className="flex w-max animate-marquee group-hover:[animation-play-state:paused]">
         {extendedLogos.map((logo, index) => (
-          <div key={index} className="flex-shrink-0 mx-6">
+          <div key={index} className="flex-shrink-0 mx-4">
             <img 
               src={logo.url} 
               alt={logo.name} 
-              className="h-6 object-contain"
+              className="h-9 object-contain"
               referrerPolicy="no-referrer"
             />
           </div>
