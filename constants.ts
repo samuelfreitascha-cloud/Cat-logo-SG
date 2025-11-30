@@ -42,7 +42,7 @@ export const PRODUCTS: Product[] = [
     image: 'https://res.cloudinary.com/drdktfy8u/image/upload/v1763929574/D_NQ_NP_2X_668726-MLA87198772051_072025-F_fgowfi.webp',
     category: 'Praia',
     color: 'Azul Royal',
-    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Guarda-Sol%20Bagum%201,60m',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Grupo%20Oplin%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Guarda-Sol%20Bagum%201,60m',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder (pode substituir depois)
   },
   {
@@ -58,7 +58,7 @@ export const PRODUCTS: Product[] = [
     infoImage: 'https://res.cloudinary.com/drdktfy8u/image/upload/v1763930490/D_NQ_NP_2X_668962-MLB89005285036_082025-F-ombrelone-central-redondo-240-metros-solasol-sungap_iw1q1z.webp',
     category: 'Praia',
     color: 'Natural',
-    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Ombrelone%20Madeira%202,40m',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Grupo%20Oplin%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Ombrelone%20Madeira%202,40m',
   },
   {
     id: '5',
@@ -68,7 +68,7 @@ export const PRODUCTS: Product[] = [
     image: 'https://res.cloudinary.com/drdktfy8u/image/upload/v1763931619/Ombrelone-Corona_qu2el8.png',
     category: 'Praia',
     color: 'Listrado',
-    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Ombrelone%20lona%20n%C3%A1utica',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Grupo%20Oplin%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Ombrelone%20lona%20n%C3%A1utica',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
   },
   {
@@ -79,7 +79,7 @@ export const PRODUCTS: Product[] = [
     image: 'https://res.cloudinary.com/drdktfy8u/image/upload/v1763931626/Generated-Image-October-01_-2025-4_29PM_a2gucu.png',
     category: 'Praia',
     color: 'Beige',
-    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Ombrelone%20com%20abas',
+    externalUrl: 'https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Grupo%20Oplin%20-%20Gostaria%20de%20um%20orçamento%20para%20o%20Ombrelone%20com%20abas',
     infoImage: 'https://i.ibb.co/WNYMRjN2/Prancheta-4-c-pia-11-4x.png', // Placeholder
   },
   {

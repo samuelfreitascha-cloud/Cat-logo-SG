@@ -5,7 +5,7 @@ import { ArrowLeft, MoreVertical, Brush, Headset, Briefcase, PlusCircle, Message
 
 export const Services: React.FC = () => {
   const navigate = useNavigate();
-  const whatsappLink = "https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Sungap";
+  const whatsappLink = "https://api.whatsapp.com/send?1=pt_BR&phone=551140620224&text=Ol%C3%A1%20Grupo%20Oplin";
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">

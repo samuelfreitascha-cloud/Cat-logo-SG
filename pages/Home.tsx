@@ -6,6 +6,7 @@ import { PRODUCTS } from '../constants';
 import { ProductCard } from '../components/ProductCard';
 import { useNavigate } from 'react-router-dom';
 import { HeroCarousel } from '../components/HeroCarousel';
+import { LogoMarquee } from '../components/LogoMarquee'; // Importa o novo componente
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -38,10 +39,10 @@ export const Home: React.FC = () => {
           {selectedMessage ? (
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                 <Umbrella size={20} className="text-primary" />
+                 <img src="https://res.cloudinary.com/drdktfy8u/image/upload/v1764526830/Prancheta_1_apeutg.svg" className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="font-bold text-slate-900 text-sm leading-tight">Equipe Sungap</h2>
+                <h2 className="font-bold text-slate-900 text-sm leading-tight">Equipe Grupo Oplin</h2>
                 <p className="text-xs text-green-600 flex items-center gap-1">● Online</p>
               </div>
             </div>
@@ -61,14 +62,14 @@ export const Home: React.FC = () => {
               >
                 <div className="relative">
                   <div className="w-12 h-12 bg-gradient-to-br from-primary to-cyan-600 rounded-full flex items-center justify-center text-white shadow-md">
-                    <Umbrella size={24} fill="currentColor" className="text-white" />
+                    <img src="https://res.cloudinary.com/drdktfy8u/image/upload/v1764526830/Prancheta_1_apeutg.svg" className="w-7 h-7" />
                   </div>
                   <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>
                 </div>
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="font-bold text-slate-900">Equipe Sungap</h3>
+                    <h3 className="font-bold text-slate-900">Equipe Grupo Oplin</h3>
                     <span className="text-xs text-primary font-semibold">10:00</span>
                   </div>
                   <p className="text-sm text-slate-500 truncate font-medium">
@@ -89,7 +90,7 @@ export const Home: React.FC = () => {
               {/* Balão da Mensagem */}
               <div className="flex gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 self-end mb-1">
-                   <Umbrella size={14} className="text-primary" />
+                   <img src="https://res.cloudinary.com/drdktfy8u/image/upload/v1764526830/Prancheta_1_apeutg.svg" className="w-4 h-4" />
                 </div>
                 <div className="bg-white p-4 rounded-2xl rounded-bl-none shadow-sm border border-slate-100 max-w-[85%]">
                   <p className="text-slate-800 text-sm leading-relaxed">
@@ -134,27 +135,14 @@ export const Home: React.FC = () => {
       {showNotifications && <NotificationModal />}
       
       {/* Header */}
-      <header className="flex justify-between items-center mb-6">
+      <header className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-3">
-          {/* 
-            Lógica de Logo: 
-            Usa a própria imagem duplicada com animate-ping para criar a silhueta pulsante.
-            Isso garante que a animação tenha o formato exato do guarda-chuva.
-          */}
           <div className="relative w-12 h-12 flex items-center justify-center">
             {!imgError ? (
               <>
-                {/* Camada de Animação (Silhueta) */}
                 <img 
                   src="https://res.cloudinary.com/drdktfy8u/image/upload/v1764526830/Prancheta_1_apeutg.svg" 
-                  alt="" 
-                  className="absolute inset-0 w-full h-full object-contain animate-ping opacity-30"
-                  referrerPolicy="no-referrer"
-                />
-                {/* Imagem Principal */}
-                <img 
-                  src="https://res.cloudinary.com/drdktfy8u/image/upload/v1764526830/Prancheta_1_apeutg.svg" 
-                  alt="Logo Catálogo Sungap" 
+                  alt="Logo Catálogo Grupo Oplin" 
                   className="relative z-10 w-full h-full object-contain"
                   onError={() => setImgError(true)}
                   referrerPolicy="no-referrer"
@@ -162,13 +150,12 @@ export const Home: React.FC = () => {
               </>
             ) : (
               <div className="relative z-10 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                <span className="absolute inset-0 rounded-full bg-slate-300 animate-ping opacity-75"></span>
                 <Umbrella className="text-primary relative z-10" size={28} />
               </div>
             )}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-800 leading-tight">Catálogo Sungap</h1>
+            <h1 className="text-xl font-bold text-slate-800 leading-tight">Catálogo Grupo Oplin</h1>
             <p className="text-xs text-slate-500">Encontre a sombra perfeita</p>
           </div>
         </div>
@@ -185,6 +172,9 @@ export const Home: React.FC = () => {
           </span>
         </button>
       </header>
+      
+      {/* Carrossel de Logos */}
+      <LogoMarquee />
 
       {/* Search */}
       <div className="relative mb-8 group">
@@ -209,7 +199,6 @@ export const Home: React.FC = () => {
         <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar">
           {[
             { name: 'Praia', icon: Umbrella, color: 'text-primary', bg: 'bg-primary/10' },
-            // Categoria Jardim removida conforme solicitado
             { name: 'Pet Shop', icon: PawPrint, color: 'text-slate-500', bg: 'bg-slate-100' },
             { name: 'Casa', icon: House, color: 'text-slate-500', bg: 'bg-slate-100' },
             { name: 'Ofertas', icon: Tag, color: 'text-slate-500', bg: 'bg-slate-100' },

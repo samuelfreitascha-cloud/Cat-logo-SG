@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="description" content="Catálogo Sungap - Encontre a sombra perfeita" />
-    <title>Catálogo Sungap</title>
+    <meta name="description" content="Catálogo Grupo Oplin - Encontre a sombra perfeita" />
+    <title>Catálogo Grupo Oplin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -28,6 +28,15 @@
             fontFamily: {
               sans: ["Poppins", "Inter", "sans-serif"],
               display: ["Poppins", "sans-serif"],
+            },
+            animation: {
+              marquee: 'marquee 25s linear infinite',
+            },
+            keyframes: {
+              marquee: {
+                '0%': { transform: 'translateX(0%)' },
+                '100%': { transform: 'translateX(-50%)' },
+              },
             },
           },
         },
