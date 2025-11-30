@@ -146,14 +146,14 @@ export const Home: React.FC = () => {
               <>
                 {/* Camada de Animação (Silhueta) */}
                 <img 
-                  src="https://drive.google.com/thumbnail?id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh&sz=s200" 
+                  src="https://res.cloudinary.com/drdktfy8u/image/upload/v1764526830/Prancheta_1_apeutg.svg" 
                   alt="" 
                   className="absolute inset-0 w-full h-full object-contain animate-ping opacity-30"
                   referrerPolicy="no-referrer"
                 />
                 {/* Imagem Principal */}
                 <img 
-                  src="https://drive.google.com/thumbnail?id=1EcR3fq9V9oav2sUrMDdm1SNeuEJgcbxh&sz=s200" 
+                  src="https://res.cloudinary.com/drdktfy8u/image/upload/v1764526830/Prancheta_1_apeutg.svg" 
                   alt="Logo Catálogo Sungap" 
                   className="relative z-10 w-full h-full object-contain"
                   onError={() => setImgError(true)}
