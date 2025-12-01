@@ -64,8 +64,11 @@ export const HeroCarousel: React.FC = () => {
 
   // Reset absoluto ao mudar de slide para evitar travamentos
   useEffect(() => {
+    // Force clean state whenever index changes
     transformRef.current = { x: 0, y: 0, scale: 1 };
     setZoomMode(false);
+    isAnimatingRef.current = false;
+    
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
         imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
@@ -134,6 +137,30 @@ export const HeroCarousel: React.FC = () => {
     isAnimatingRef.current = false;
   };
 
+  // Navegação Manual dentro do Zoom (Setas)
+  const handleManualNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Força o reset antes de mudar
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    setZoomMode(false);
+    if (imgRef.current) {
+        imgRef.current.style.transition = 'none';
+        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
+    }
+    nextSlide();
+  };
+
+  const handleManualPrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    setZoomMode(false);
+    if (imgRef.current) {
+        imgRef.current.style.transition = 'none';
+        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
+    }
+    prevSlide();
+  };
+
   const updateImageTransform = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
@@ -161,7 +188,7 @@ export const HeroCarousel: React.FC = () => {
         } else {
             prevSlide();
         }
-        // O useEffect do currentIndex cuidará do reset final, mas garantimos aqui também
+        // O useEffect do currentIndex cuidará do reset final
         isAnimatingRef.current = false;
     }, 200);
   };
@@ -174,7 +201,6 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Parar qualquer transição imediatamente para dar controle total ao dedo
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
     }
@@ -183,7 +209,6 @@ export const HeroCarousel: React.FC = () => {
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
 
-    // Cache de layout
     if (imgRef.current) {
         layoutCacheRef.current = {
             imgWidth: imgRef.current.offsetWidth,
@@ -227,12 +252,8 @@ export const HeroCarousel: React.FC = () => {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // LÓGICA DE MOVIMENTO:
-      // Se a escala for maior que 1.05, tratamos como PAN (navegar na imagem ampliada) com limites
-      // Se a escala for ~1, tratamos como SWIPE (arrastar para trocar) livre horizontalmente
-      
       if (transformRef.current.scale > 1.05) {
-          // --- PAN (COM LIMITES) ---
+          // PAN (COM LIMITES)
           const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
           const currentScale = transformRef.current.scale;
           const scaledWidth = imgWidth * currentScale;
@@ -250,8 +271,7 @@ export const HeroCarousel: React.FC = () => {
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
-          // --- SWIPE (LIVRE EM X) ---
-          // Bloqueia Y, permite X livre para sensação de slide
+          // SWIPE (LIVRE EM X)
           transformRef.current.x += dx;
           transformRef.current.y = 0;
       }
@@ -275,7 +295,6 @@ export const HeroCarousel: React.FC = () => {
 
     // 1. DETECÇÃO DE TAP (CLIQUE)
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
-        // Toggle Zoom
         if (zoomMode) {
             setZoomMode(false);
             transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -291,35 +310,29 @@ export const HeroCarousel: React.FC = () => {
     }
 
     // 2. DECISÃO DE SWIPE vs ZOOM
-    
-    // Se ainda estiver com zoom significativo (> 1.1), mantém o zoom e não faz nada
-    if (transformRef.current.scale > 1.1) {
-       lastTouchRef.current = null;
-       return; 
+    // Se a escala for pequena, forçamos o reset para 1.0 para permitir o swipe
+    if (transformRef.current.scale < 1.1) {
+       transformRef.current.scale = 1;
+       transformRef.current.y = 0;
+       setZoomMode(false);
+       
+       const swipeThreshold = 70;
+       const currentX = transformRef.current.x;
+
+       if (currentX < -swipeThreshold) {
+           handleSwipeNavigation('next');
+       } else if (currentX > swipeThreshold) {
+           handleSwipeNavigation('prev');
+       } else {
+           // Volta para o centro se não arrastou o suficiente
+           transformRef.current.x = 0;
+           if (imgRef.current) {
+               imgRef.current.style.transition = "transform 0.2s ease-out";
+               updateImageTransform();
+           }
+       }
     }
-
-    // Se chegou aqui, a escala é pequena (< 1.1). Vamos considerar como "Reset p/ 1.0"
-    // E verificar se o usuário arrastou o suficiente para trocar de slide.
-    
-    transformRef.current.scale = 1;
-    transformRef.current.y = 0;
-    setZoomMode(false);
-
-    const swipeThreshold = 70; // Distância mínima para considerar swipe
-    const currentX = transformRef.current.x;
-
-    if (currentX < -swipeThreshold) {
-        handleSwipeNavigation('next');
-    } else if (currentX > swipeThreshold) {
-        handleSwipeNavigation('prev');
-    } else {
-        // Não arrastou o suficiente, volta para o centro
-        transformRef.current.x = 0;
-        if (imgRef.current) {
-            imgRef.current.style.transition = "transform 0.2s ease-out";
-            updateImageTransform();
-        }
-    }
+    // Se a escala for grande (> 1.1), mantemos o estado atual (zoom ativo)
     
     lastTouchRef.current = null;
   };
@@ -383,13 +396,29 @@ export const HeroCarousel: React.FC = () => {
 
       {isZoomOpen && (
         <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden" style={{ touchAction: 'none' }}>
-          <button className="absolute top-4 right-4 text-slate-800 p-2.5 rounded-full bg-white/90 shadow-md backdrop-blur-sm z-50 hover:bg-slate-100 active:scale-95 transition-all" onClick={closeZoom}><X size={24} /></button>
+          
+          {/* BOTÕES MANUAIS PARA NAVEGAÇÃO NO ZOOM */}
+          <button 
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-white/80 shadow-md backdrop-blur-sm text-slate-800 hover:bg-white active:scale-95 transition-all"
+              onClick={handleManualPrev}
+          >
+              <ChevronLeft size={28} />
+          </button>
+          
+          <button 
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-white/80 shadow-md backdrop-blur-sm text-slate-800 hover:bg-white active:scale-95 transition-all"
+              onClick={handleManualNext}
+          >
+              <ChevronRight size={28} />
+          </button>
+
+          <button className="absolute top-4 right-4 text-slate-800 p-2.5 rounded-full bg-white/90 shadow-md backdrop-blur-sm z-[110] hover:bg-slate-100 active:scale-95 transition-all" onClick={closeZoom}><X size={24} /></button>
           
           <div className="w-full h-full flex items-center justify-center" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
             <img ref={imgRef} src={CAROUSEL_IMAGES[currentIndex].url} alt={CAROUSEL_IMAGES[currentIndex].title} className="max-w-full max-h-full object-contain will-change-transform" draggable={false} />
           </div>
           
-          <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
+          <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200 z-[105]">
              <div></div>
              <div className="text-center text-slate-500 pointer-events-auto bg-white/90 backdrop-blur-md mx-6 p-4 rounded-2xl shadow-sm border border-slate-100">
                 <h2 className="text-xl font-bold mb-1 text-slate-900">{CAROUSEL_IMAGES[currentIndex].title}</h2>

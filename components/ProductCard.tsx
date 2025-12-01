@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, ShoppingBag, MessageCircle, Info, Image as ImageIcon } from 'lucide-react';
 import { Product } from '../types';
@@ -17,7 +18,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   
   const [zoomMode, setZoomMode] = useState(false);
   
-  // Refs para animação direta
   const imgRef = useRef<HTMLImageElement>(null);
   const uiRef = useRef<HTMLDivElement>(null); 
   const transformRef = useRef({ x: 0, y: 0, scale: 1 });
@@ -92,7 +92,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // RESET AGRESSIVO: Ao tocar, cancela qualquer animação anterior imediatamente
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
     }
@@ -101,7 +100,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
 
-    // Cache layout dimensions on start to improve performance
     if (imgRef.current) {
         layoutCacheRef.current = {
             imgWidth: imgRef.current.offsetWidth,
@@ -146,7 +144,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             else setActiveImageIndex(images.length - 1);
         }
         
-        // Force reset states after swipe
         transformRef.current = { x: 0, y: 0, scale: 1 };
         setZoomMode(false);
         if (imgRef.current) {
@@ -162,28 +159,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     
     if (!lastTouchRef.current) return;
     
-    // TWO FINGERS: ZOOM (PINCH)
     if (e.touches.length === 2) {
       if (!zoomMode) setZoomMode(true);
       const dist = getDistance(e.touches);
       const scaleFactor = dist / lastTouchRef.current.dist;
-      // Limit zoom between 1x and 3x
       const newScale = Math.min(Math.max(initialScaleRef.current * scaleFactor, 1), 3);
       transformRef.current.scale = newScale;
       updateImageTransform();
 
-    } 
-    // ONE FINGER: PAN or SWIPE
-    else if (e.touches.length === 1) {
+    } else if (e.touches.length === 1) {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // LOGIC SPLIT:
-      // If scale is > 1.05 (Zoomed), we CLAMP to borders (Pan details)
-      // If scale is approx 1 (Not Zoomed), we allow FREE drag (Swipe intent)
-      
       if (transformRef.current.scale > 1.05) {
-          // --- PANNING LOGIC (ZOOMED) ---
           const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
           const currentScale = transformRef.current.scale;
           const scaledWidth = imgWidth * currentScale;
@@ -195,17 +183,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           let nextX = transformRef.current.x + dx;
           let nextY = transformRef.current.y + dy;
 
-          // Clamp to boundaries
           nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
           nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
 
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
-          // --- SWIPE LOGIC (NORMAL) ---
-          // Free movement on X axis to simulate slide drag
           transformRef.current.x += dx;
-          // Ignore Y movement for swipe
       }
       
       lastTouchRef.current = { ...lastTouchRef.current, x: e.touches[0].pageX, y: e.touches[0].pageY };
@@ -235,40 +219,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         touchEndPos.pageY - touchStartPosRef.current.y
     );
 
-    // 1. CLICK / TAP DETECTION
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
         performToggleZoom();
         lastTouchRef.current = null;
         return;
     }
     
-    // 2. SIGNIFICANT ZOOM: Keep zooming
     if (transformRef.current.scale > 1.1) {
        lastTouchRef.current = null;
        return;
     }
 
-    // 3. ZOOM RESET / SWIPE DECISION
-    // If we are here, scale is <= 1.1 (basically normal size)
-    
-    const wasZoomed = transformRef.current.scale > 1.05; // Slightly more than 1
+    const wasZoomed = transformRef.current.scale > 1.05;
 
-    // Hard Reset Scale and Y
     transformRef.current.scale = 1;
     transformRef.current.y = 0;
     setZoomMode(false);
 
     const swipeThreshold = 70;
 
-    // Logic: 
-    // If we were just zoomed out (pinching closed), we usually want to center the image, NOT swipe immediately.
-    // If we were dragging at 1x scale, we want to swipe.
-    
     if (wasZoomed) {
-        // Just snapped back from zoom - Reset to center (0,0)
         transformRef.current.x = 0;
     } else {
-        // Was dragging normally - Check for swipe
         if (transformRef.current.x < -swipeThreshold) {
             handleSwipeNavigation('next');
             lastTouchRef.current = null;
@@ -278,11 +250,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             lastTouchRef.current = null;
             return;
         }
-        // Not enough drag for swipe? Back to center
         transformRef.current.x = 0;
     }
 
-    // Apply the Reset visual
     if (imgRef.current) {
         imgRef.current.style.transition = "transform 0.2s ease-out";
         updateImageTransform();
@@ -314,6 +284,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Reset Zoom and Transform before switching
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    setZoomMode(false);
+    if (imgRef.current) {
+        imgRef.current.style.transition = 'none';
+        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
+    }
+
     if (showInfoImage) return; 
     if (activeImageIndex < images.length - 1) {
       setActiveImageIndex(activeImageIndex + 1);
@@ -324,6 +302,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    setZoomMode(false);
+    if (imgRef.current) {
+        imgRef.current.style.transition = 'none';
+        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
+    }
+
     if (showInfoImage) return; 
     if (activeImageIndex > 0) {
       setActiveImageIndex(activeImageIndex - 1);
@@ -374,7 +359,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     );
   };
 
-  // Grid Variant
   if (variant === 'grid') {
     return (
       <>
@@ -395,11 +379,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             </div>
           </div>
           <div className="p-3">
-            <h3 
-              className="font-semibold text-sm text-slate-800 truncate mb-1"
-            >
-              {product.name}
-            </h3>
+            <h3 className="font-semibold text-sm text-slate-800 truncate mb-1">{product.name}</h3>
             <p className="text-xs text-slate-500 mb-2 truncate">{product.description}</p>
             <div className="flex justify-between items-center">
               <span className="font-bold text-sm text-slate-900">
@@ -409,13 +389,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             </div>
           </div>
         </div>
-        
         {isZoomOpen && renderZoomModal()}
       </>
     );
   }
 
-  // List Variant
   return (
     <>
       <div 
@@ -434,7 +412,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         </div>
         {renderActionButton(true)}
       </div>
-      
       {isZoomOpen && renderZoomModal()}
     </>
   );
@@ -445,6 +422,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden"
             style={{ touchAction: 'none' }}
         >
+            {/* BOTÕES DE NAVEGAÇÃO LATERAIS PARA SEGURANÇA */}
+            {!showInfoImage && images.length > 1 && (
+                <>
+                    <button 
+                        className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-white/80 shadow-md backdrop-blur-sm text-slate-800 hover:bg-white active:scale-95 transition-all"
+                        onClick={prevImage}
+                    >
+                        <ChevronLeft size={28} />
+                    </button>
+                    <button 
+                        className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-white/80 shadow-md backdrop-blur-sm text-slate-800 hover:bg-white active:scale-95 transition-all"
+                        onClick={nextImage}
+                    >
+                        <ChevronRight size={28} />
+                    </button>
+                </>
+            )}
+
             <button 
                 className="absolute top-4 right-4 text-slate-800 p-2.5 rounded-full bg-white/90 shadow-md backdrop-blur-sm z-50 hover:bg-slate-100 active:scale-95 transition-all"
                 onClick={closeZoom}
@@ -467,9 +462,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                 />
             </div>
             
-            <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200">
+            <div ref={uiRef} className="absolute inset-0 pointer-events-none flex flex-col justify-between py-8 transition-opacity duration-200 z-[105]">
                 
-                {/* TÍTULO NO TOPO (Apenas se não estiver no modo Saber Mais) */}
                 {!showInfoImage ? (
                   <div className="w-full flex justify-center mt-6 pointer-events-auto z-40">
                        <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-slate-100 text-center mx-12">
@@ -480,22 +474,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                 ) : (
                   <div className="mt-6 h-12"></div>
                 )}
-
-                {/* SETAS CENTRALIZADAS */}
-                {!showInfoImage && images.length > 1 && (
-                    <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-between px-4 pointer-events-auto z-30">
-                        <button onClick={prevImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
-                            <ChevronLeft size={24} />
-                        </button>
-                        <button onClick={nextImage} className="p-3 bg-white/90 shadow-md backdrop-blur rounded-full text-slate-700 hover:bg-slate-100">
-                            <ChevronRight size={24} />
-                        </button>
-                    </div>
-                )}
                 
                 <div className="flex flex-col gap-4 items-center mb-6 pointer-events-auto z-40">
-                     
-                     {/* BOTÃO SABER MAIS (ACIMA DAS THUMBS) */}
                      {product.infoImage && (
                          <button 
                              onClick={toggleInfoImage}
@@ -515,7 +495,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                          </button>
                      )}
 
-                     {/* THUMBNAILS (EM BAIXO) */}
                      {!showInfoImage && images.length > 1 && (
                          <div className="flex gap-2 overflow-x-auto max-w-[90vw] p-2 no-scrollbar bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-100 shadow-sm">
                              {images.map((img, idx) => (
@@ -529,7 +508,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
                              ))}
                          </div>
                      )}
-
                 </div>
             </div>
         </div>
