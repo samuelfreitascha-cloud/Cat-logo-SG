@@ -48,7 +48,6 @@ export const HeroCarousel: React.FC = () => {
   const rafRef = useRef<number | null>(null); 
   
   const isAnimatingRef = useRef(false); 
-  const animationStartTimeRef = useRef(0);
 
   const layoutCacheRef = useRef({
     imgWidth: 0,
@@ -60,18 +59,19 @@ export const HeroCarousel: React.FC = () => {
   const touchStartTimeRef = useRef(0);
   const touchStartPosRef = useRef({ x: 0, y: 0 });
 
-  // Reset absoluto ao mudar de slide para evitar travamentos
+  // --- CORREÇÃO DEFINITIVA: O useEffect é a autoridade suprema do Reset ---
   useEffect(() => {
-    // Force clean state whenever index changes
+    // Sempre que o índice mudar, forçamos o estado limpo
     transformRef.current = { x: 0, y: 0, scale: 1 };
     setZoomMode(false);
     isAnimatingRef.current = false;
     
     if (imgRef.current) {
+        // Remove transição para o reset ser instantâneo
         imgRef.current.style.transition = 'none';
         imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
     }
-  }, [currentIndex]);
+  }, [currentIndex, isZoomOpen]);
 
   useEffect(() => {
     if (CAROUSEL_IMAGES.length <= 1) return;
@@ -121,42 +121,21 @@ export const HeroCarousel: React.FC = () => {
     const currentImage = CAROUSEL_IMAGES[index];
     if (imageErrors[index]) return;
     setIsZoomOpen(true);
-    // Inicia resetado
-    setZoomMode(false);
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    isAnimatingRef.current = false;
   };
 
   const closeZoom = () => {
     setIsZoomOpen(false);
-    setZoomMode(false);
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    isAnimatingRef.current = false;
   };
 
-  // Navegação Manual dentro do Zoom (Setas)
+  // --- BOTÕES MANUAIS: Forçam reset antes de navegar ---
   const handleManualNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Força o reset antes de mudar
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    setZoomMode(false);
-    if (imgRef.current) {
-        imgRef.current.style.transition = 'none';
-        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
-    }
-    nextSlide();
+    nextSlide(); // O useEffect cuidará do reset
   };
 
   const handleManualPrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    setZoomMode(false);
-    if (imgRef.current) {
-        imgRef.current.style.transition = 'none';
-        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
-    }
-    prevSlide();
+    prevSlide(); // O useEffect cuidará do reset
   };
 
   const updateImageTransform = () => {
@@ -169,9 +148,11 @@ export const HeroCarousel: React.FC = () => {
     });
   };
 
-  // Função para executar a troca de slide com animação
+  // --- SWIPE: Confia no useEffect para limpar o estado depois ---
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
+    if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
+    
     const screenWidth = window.innerWidth;
     const exitX = direction === 'next' ? -screenWidth : screenWidth;
 
@@ -186,8 +167,7 @@ export const HeroCarousel: React.FC = () => {
         } else {
             prevSlide();
         }
-        // O useEffect do currentIndex cuidará do reset final
-        isAnimatingRef.current = false;
+        // Não resetamos manualmente aqui para evitar conflito com useEffect
     }, 200);
   };
 
@@ -202,11 +182,13 @@ export const HeroCarousel: React.FC = () => {
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
     }
+    // Permite interrupção de animação
     isAnimatingRef.current = false;
 
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
 
+    // Cache de layout para performance
     if (imgRef.current) {
         layoutCacheRef.current = {
             imgWidth: imgRef.current.offsetWidth,
@@ -243,15 +225,14 @@ export const HeroCarousel: React.FC = () => {
       
       transformRef.current.scale = newScale;
       updateImageTransform();
-
     } 
     // PAN ou SWIPE
     else if (e.touches.length === 1) {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
+      // Se escala > 1.05, é PAN (navegar no zoom)
       if (transformRef.current.scale > 1.05) {
-          // PAN (COM LIMITES)
           const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
           const currentScale = transformRef.current.scale;
           const scaledWidth = imgWidth * currentScale;
@@ -263,15 +244,17 @@ export const HeroCarousel: React.FC = () => {
           let nextX = transformRef.current.x + dx;
           let nextY = transformRef.current.y + dy;
 
+          // Clamping
           nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
           nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
           
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
-          // SWIPE (LIVRE EM X)
+          // Se escala ~= 1, é SWIPE horizontal puro
+          // Travamos o Y em 0 para evitar comportamento estranho
           transformRef.current.x += dx;
-          transformRef.current.y = 0;
+          transformRef.current.y = 0; 
       }
 
       lastTouchRef.current = {
@@ -291,9 +274,10 @@ export const HeroCarousel: React.FC = () => {
         touchEndPos.pageY - touchStartPosRef.current.y
     );
 
-    // 1. DETECÇÃO DE TAP (CLIQUE)
+    // 1. TAP (Clique simples para alternar UI)
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
         if (zoomMode) {
+            // Se estava com zoom, reseta
             setZoomMode(false);
             transformRef.current = { x: 0, y: 0, scale: 1 };
             if (imgRef.current) {
@@ -301,14 +285,15 @@ export const HeroCarousel: React.FC = () => {
                 updateImageTransform();
             }
         } else {
+            // Se estava normal, entra em modo imersivo (esconde UI)
             setZoomMode(true);
         }
         lastTouchRef.current = null;
         return;
     }
 
-    // 2. DECISÃO DE SWIPE vs ZOOM
-    // Se a escala for pequena, forçamos o reset para 1.0 para permitir o swipe
+    // 2. Lógica de saída do Zoom/Swipe
+    // Se a escala for pequena (< 1.1), assumimos que o usuário quer sair do zoom ou swipar
     if (transformRef.current.scale < 1.1) {
        transformRef.current.scale = 1;
        transformRef.current.y = 0;
@@ -322,7 +307,7 @@ export const HeroCarousel: React.FC = () => {
        } else if (currentX > swipeThreshold) {
            handleSwipeNavigation('prev');
        } else {
-           // Volta para o centro se não arrastou o suficiente
+           // Snap back to center
            transformRef.current.x = 0;
            if (imgRef.current) {
                imgRef.current.style.transition = "transform 0.2s ease-out";
@@ -330,7 +315,7 @@ export const HeroCarousel: React.FC = () => {
            }
        }
     }
-    // Se a escala for grande (> 1.1), mantemos o estado atual (zoom ativo)
+    // Se escala >= 1.1, mantemos o zoom
     
     lastTouchRef.current = null;
   };
@@ -395,21 +380,21 @@ export const HeroCarousel: React.FC = () => {
       {isZoomOpen && (
         <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden" style={{ touchAction: 'none' }}>
           
-          {/* BOTÕES MANUAIS PARA NAVEGAÇÃO NO ZOOM */}
+          {/* BOTÕES MANUAIS DISCRETOS - Desaparecem se estiver com Zoom */}
           <button 
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-2 rounded-full bg-black/20 text-white/90 hover:bg-black/40 backdrop-blur-[2px] border border-white/10 shadow-sm active:scale-95 transition-all duration-300"
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-black/10 text-white/70 hover:bg-black/30 hover:text-white backdrop-blur-[2px] border border-white/5 active:scale-95 transition-all duration-300"
               style={{ opacity: zoomMode ? 0 : 1, pointerEvents: zoomMode ? 'none' : 'auto' }}
               onClick={handleManualPrev}
           >
-              <ChevronLeft size={28} />
+              <ChevronLeft size={32} strokeWidth={1.5} />
           </button>
           
           <button 
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] p-2 rounded-full bg-black/20 text-white/90 hover:bg-black/40 backdrop-blur-[2px] border border-white/10 shadow-sm active:scale-95 transition-all duration-300"
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-black/10 text-white/70 hover:bg-black/30 hover:text-white backdrop-blur-[2px] border border-white/5 active:scale-95 transition-all duration-300"
               style={{ opacity: zoomMode ? 0 : 1, pointerEvents: zoomMode ? 'none' : 'auto' }}
               onClick={handleManualNext}
           >
-              <ChevronRight size={28} />
+              <ChevronRight size={32} strokeWidth={1.5} />
           </button>
 
           <button className="absolute top-4 right-4 text-slate-800 p-2.5 rounded-full bg-white/90 shadow-md backdrop-blur-sm z-[110] hover:bg-slate-100 active:scale-95 transition-all" onClick={closeZoom}><X size={24} /></button>

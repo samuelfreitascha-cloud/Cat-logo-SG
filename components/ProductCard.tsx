@@ -24,7 +24,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const rafRef = useRef<number | null>(null); 
   
   const isAnimatingRef = useRef(false); 
-  const animationStartTimeRef = useRef(0);
 
   const layoutCacheRef = useRef({
     imgWidth: 0,
@@ -49,15 +48,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     }
   };
 
+  // --- CORREÇÃO DEFINITIVA: O useEffect é a autoridade suprema do Reset ---
   useEffect(() => {
     if (isZoomOpen) {
         transformRef.current = { x: 0, y: 0, scale: 1 };
+        setZoomMode(false);
+        isAnimatingRef.current = false;
+
         if (imgRef.current) {
             imgRef.current.style.transition = 'none';
             imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
         }
-        isAnimatingRef.current = false;
-        setZoomMode(false);
     }
   }, [activeImageIndex, showInfoImage, isZoomOpen]);
 
@@ -122,9 +123,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   };
 
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
+    if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
-    animationStartTimeRef.current = Date.now();
-
+    
     const screenWidth = window.innerWidth;
     const exitX = direction === 'next' ? -screenWidth : screenWidth;
 
@@ -141,20 +142,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             if (activeImageIndex > 0) setActiveImageIndex(prev => prev - 1);
             else setActiveImageIndex(images.length - 1);
         }
-        
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        setZoomMode(false);
-        if (imgRef.current) {
-             imgRef.current.style.transition = "none";
-             imgRef.current.style.transform = "translate3d(0,0,0) scale(1)";
-        }
     }, 200);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.cancelable) e.preventDefault();
-    isAnimatingRef.current = false;
-    
     if (!lastTouchRef.current) return;
     
     if (e.touches.length === 2) {
@@ -187,7 +179,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
+          // SWIPE horizontal puro
           transformRef.current.x += dx;
+          transformRef.current.y = 0;
       }
       
       lastTouchRef.current = { ...lastTouchRef.current, x: e.touches[0].pageX, y: e.touches[0].pageY };
@@ -202,7 +196,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           if (imgRef.current) {
               imgRef.current.style.transition = "transform 0.3s ease-out";
               updateImageTransform();
-              setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
           }
       } else {
           setZoomMode(true);
@@ -223,40 +216,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
         return;
     }
     
-    if (transformRef.current.scale > 1.1) {
-       lastTouchRef.current = null;
-       return;
-    }
-
-    const wasZoomed = transformRef.current.scale > 1.05;
-
-    transformRef.current.scale = 1;
-    transformRef.current.y = 0;
-    setZoomMode(false);
-
-    const swipeThreshold = 70;
-
-    if (wasZoomed) {
-        transformRef.current.x = 0;
-    } else {
+    if (transformRef.current.scale < 1.1) {
+        transformRef.current.scale = 1;
+        transformRef.current.y = 0;
+        setZoomMode(false);
+        
+        const swipeThreshold = 70;
         if (transformRef.current.x < -swipeThreshold) {
             handleSwipeNavigation('next');
-            lastTouchRef.current = null;
-            return;
         } else if (transformRef.current.x > swipeThreshold) {
             handleSwipeNavigation('prev');
-            lastTouchRef.current = null;
-            return;
+        } else {
+            transformRef.current.x = 0;
+            if (imgRef.current) {
+                imgRef.current.style.transition = "transform 0.2s ease-out";
+                updateImageTransform();
+            }
         }
-        transformRef.current.x = 0;
     }
-
-    if (imgRef.current) {
-        imgRef.current.style.transition = "transform 0.2s ease-out";
-        updateImageTransform();
-        setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
-    }
-    
     lastTouchRef.current = null;
   };
 
@@ -265,9 +242,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     setActiveImageIndex(0);
     setShowInfoImage(false);
     setIsZoomOpen(true);
-    setZoomMode(false);
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    isAnimatingRef.current = false;
   };
 
   const closeZoom = (e?: React.MouseEvent) => {
@@ -282,14 +256,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Reset Zoom and Transform before switching
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    setZoomMode(false);
-    if (imgRef.current) {
-        imgRef.current.style.transition = 'none';
-        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
-    }
-
     if (showInfoImage) return; 
     if (activeImageIndex < images.length - 1) {
       setActiveImageIndex(activeImageIndex + 1);
@@ -300,13 +266,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    setZoomMode(false);
-    if (imgRef.current) {
-        imgRef.current.style.transition = 'none';
-        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
-    }
-
     if (showInfoImage) return; 
     if (activeImageIndex > 0) {
       setActiveImageIndex(activeImageIndex - 1);
@@ -317,10 +276,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
 
   const toggleInfoImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    transformRef.current = { x: 0, y: 0, scale: 1 };
-    updateImageTransform();
     setShowInfoImage(!showInfoImage);
-    setZoomMode(false);
   };
 
   const renderActionButton = (isList: boolean) => {
@@ -420,22 +376,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden"
             style={{ touchAction: 'none' }}
         >
-            {/* BOTÕES DE NAVEGAÇÃO LATERAIS PARA SEGURANÇA */}
+            {/* BOTÕES DE NAVEGAÇÃO LATERAIS DISCRETOS */}
             {!showInfoImage && images.length > 1 && (
                 <>
                     <button 
-                        className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-2 rounded-full bg-black/20 text-white/90 hover:bg-black/40 backdrop-blur-[2px] border border-white/10 shadow-sm active:scale-95 transition-all duration-300"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-black/10 text-white/70 hover:bg-black/30 hover:text-white backdrop-blur-[2px] border border-white/5 active:scale-95 transition-all duration-300"
                         style={{ opacity: zoomMode ? 0 : 1, pointerEvents: zoomMode ? 'none' : 'auto' }}
                         onClick={prevImage}
                     >
-                        <ChevronLeft size={28} />
+                        <ChevronLeft size={32} strokeWidth={1.5} />
                     </button>
                     <button 
-                        className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] p-2 rounded-full bg-black/20 text-white/90 hover:bg-black/40 backdrop-blur-[2px] border border-white/10 shadow-sm active:scale-95 transition-all duration-300"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-black/10 text-white/70 hover:bg-black/30 hover:text-white backdrop-blur-[2px] border border-white/5 active:scale-95 transition-all duration-300"
                         style={{ opacity: zoomMode ? 0 : 1, pointerEvents: zoomMode ? 'none' : 'auto' }}
                         onClick={nextImage}
                     >
-                        <ChevronRight size={28} />
+                        <ChevronRight size={32} strokeWidth={1.5} />
                     </button>
                 </>
             )}
