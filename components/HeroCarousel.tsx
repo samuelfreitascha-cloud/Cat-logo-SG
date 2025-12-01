@@ -46,6 +46,7 @@ export const HeroCarousel: React.FC = () => {
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
   const rafRef = useRef<number | null>(null); 
+  const lastTapTimeRef = useRef(0); // Para detectar duplo toque
   
   const isAnimatingRef = useRef(false); 
 
@@ -59,15 +60,13 @@ export const HeroCarousel: React.FC = () => {
   const touchStartTimeRef = useRef(0);
   const touchStartPosRef = useRef({ x: 0, y: 0 });
 
-  // --- CORREÇÃO DEFINITIVA: O useEffect é a autoridade suprema do Reset ---
+  // --- RESET FORÇADO AO MUDAR SLIDE ---
   useEffect(() => {
-    // Sempre que o índice mudar, forçamos o estado limpo
     transformRef.current = { x: 0, y: 0, scale: 1 };
     setZoomMode(false);
     isAnimatingRef.current = false;
     
     if (imgRef.current) {
-        // Remove transição para o reset ser instantâneo
         imgRef.current.style.transition = 'none';
         imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
     }
@@ -88,7 +87,6 @@ export const HeroCarousel: React.FC = () => {
     return () => clearInterval(interval);
   }, [currentIndex, imageErrors, isZoomOpen]);
 
-  // Controle de UI baseado no modo Zoom
   useEffect(() => {
     if (uiRef.current) {
         const opacity = zoomMode ? '0' : '1';
@@ -127,15 +125,14 @@ export const HeroCarousel: React.FC = () => {
     setIsZoomOpen(false);
   };
 
-  // --- BOTÕES MANUAIS: Forçam reset antes de navegar ---
   const handleManualNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    nextSlide(); // O useEffect cuidará do reset
+    nextSlide();
   };
 
   const handleManualPrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    prevSlide(); // O useEffect cuidará do reset
+    prevSlide();
   };
 
   const updateImageTransform = () => {
@@ -148,7 +145,6 @@ export const HeroCarousel: React.FC = () => {
     });
   };
 
-  // --- SWIPE: Confia no useEffect para limpar o estado depois ---
   const handleSwipeNavigation = (direction: 'next' | 'prev') => {
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
@@ -167,7 +163,6 @@ export const HeroCarousel: React.FC = () => {
         } else {
             prevSlide();
         }
-        // Não resetamos manualmente aqui para evitar conflito com useEffect
     }, 200);
   };
 
@@ -182,13 +177,11 @@ export const HeroCarousel: React.FC = () => {
     if (imgRef.current) {
         imgRef.current.style.transition = 'none';
     }
-    // Permite interrupção de animação
     isAnimatingRef.current = false;
 
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
 
-    // Cache de layout para performance
     if (imgRef.current) {
         layoutCacheRef.current = {
             imgWidth: imgRef.current.offsetWidth,
@@ -216,7 +209,6 @@ export const HeroCarousel: React.FC = () => {
     if (e.cancelable) e.preventDefault();
     if (!lastTouchRef.current) return;
     
-    // ZOOM (PINCH)
     if (e.touches.length === 2) {
       if (!zoomMode) setZoomMode(true);
       const dist = getDistance(e.touches);
@@ -226,12 +218,10 @@ export const HeroCarousel: React.FC = () => {
       transformRef.current.scale = newScale;
       updateImageTransform();
     } 
-    // PAN ou SWIPE
     else if (e.touches.length === 1) {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // Se escala > 1.05, é PAN (navegar no zoom)
       if (transformRef.current.scale > 1.05) {
           const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
           const currentScale = transformRef.current.scale;
@@ -244,15 +234,12 @@ export const HeroCarousel: React.FC = () => {
           let nextX = transformRef.current.x + dx;
           let nextY = transformRef.current.y + dy;
 
-          // Clamping
           nextX = Math.max(-maxOffsetX, Math.min(maxOffsetX, nextX));
           nextY = Math.max(-maxOffsetY, Math.min(maxOffsetY, nextY));
           
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
-          // Se escala ~= 1, é SWIPE horizontal puro
-          // Travamos o Y em 0 para evitar comportamento estranho
           transformRef.current.x += dx;
           transformRef.current.y = 0; 
       }
@@ -267,33 +254,54 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const timeDiff = Date.now() - touchStartTimeRef.current;
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTimeRef.current;
+    
+    // --- LÓGICA DE DUPLO TOQUE (DOUBLE TAP) ---
+    if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+        if (transformRef.current.scale > 1.1) {
+            // Se tiver zoom, reseta
+            transformRef.current = { x: 0, y: 0, scale: 1 };
+            setZoomMode(false);
+        } else {
+            // Se não tiver, dá zoom de 2.5x
+            transformRef.current = { x: 0, y: 0, scale: 2.5 };
+            setZoomMode(true);
+        }
+        if (imgRef.current) {
+            imgRef.current.style.transition = "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+            updateImageTransform();
+        }
+        lastTapTimeRef.current = 0;
+        return;
+    }
+    
+    lastTapTimeRef.current = now;
+
+    // --- LÓGICA DE TOQUE SIMPLES E SWIPE ---
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(
         touchEndPos.pageX - touchStartPosRef.current.x,
         touchEndPos.pageY - touchStartPosRef.current.y
     );
 
-    // 1. TAP (Clique simples para alternar UI)
+    const timeDiff = now - touchStartTimeRef.current;
+
+    // Tap simples (Alternar UI se não for double tap - handled by delay usually, but here simplified)
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
-        if (zoomMode) {
-            // Se estava com zoom, reseta
-            setZoomMode(false);
-            transformRef.current = { x: 0, y: 0, scale: 1 };
-            if (imgRef.current) {
-                imgRef.current.style.transition = "transform 0.3s ease-out";
-                updateImageTransform();
-            }
-        } else {
-            // Se estava normal, entra em modo imersivo (esconde UI)
-            setZoomMode(true);
+        // Se já passou o tempo do double tap no próximo frame, toggla UI
+        // Aqui apenas verificamos se não estamos em zoom mode para ativar
+        if (!zoomMode && transformRef.current.scale === 1) {
+             setZoomMode(true);
+        } else if (zoomMode) {
+            // Opcional: tocar uma vez no zoom mode pode esconder/mostrar UI sem resetar zoom
+            // setZoomMode(!zoomMode); 
         }
         lastTouchRef.current = null;
         return;
     }
 
-    // 2. Lógica de saída do Zoom/Swipe
-    // Se a escala for pequena (< 1.1), assumimos que o usuário quer sair do zoom ou swipar
+    // Saída do Swipe ou Reset de Zoom Pequeno
     if (transformRef.current.scale < 1.1) {
        transformRef.current.scale = 1;
        transformRef.current.y = 0;
@@ -307,7 +315,6 @@ export const HeroCarousel: React.FC = () => {
        } else if (currentX > swipeThreshold) {
            handleSwipeNavigation('prev');
        } else {
-           // Snap back to center
            transformRef.current.x = 0;
            if (imgRef.current) {
                imgRef.current.style.transition = "transform 0.2s ease-out";
@@ -315,7 +322,6 @@ export const HeroCarousel: React.FC = () => {
            }
        }
     }
-    // Se escala >= 1.1, mantemos o zoom
     
     lastTouchRef.current = null;
   };
@@ -380,7 +386,6 @@ export const HeroCarousel: React.FC = () => {
       {isZoomOpen && (
         <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden" style={{ touchAction: 'none' }}>
           
-          {/* BOTÕES MANUAIS DISCRETOS - Desaparecem se estiver com Zoom */}
           <button 
               className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-black/10 text-white/70 hover:bg-black/30 hover:text-white backdrop-blur-[2px] border border-white/5 active:scale-95 transition-all duration-300"
               style={{ opacity: zoomMode ? 0 : 1, pointerEvents: zoomMode ? 'none' : 'auto' }}

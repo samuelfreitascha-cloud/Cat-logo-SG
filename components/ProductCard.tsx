@@ -22,6 +22,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
   const lastTouchRef = useRef<{ x: number; y: number; dist: number } | null>(null);
   const initialScaleRef = useRef(1);
   const rafRef = useRef<number | null>(null); 
+  const lastTapTimeRef = useRef(0);
   
   const isAnimatingRef = useRef(false); 
 
@@ -48,7 +49,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     }
   };
 
-  // --- CORREÇÃO DEFINITIVA: O useEffect é a autoridade suprema do Reset ---
   useEffect(() => {
     if (isZoomOpen) {
         transformRef.current = { x: 0, y: 0, scale: 1 };
@@ -179,7 +179,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
-          // SWIPE horizontal puro
           transformRef.current.x += dx;
           transformRef.current.y = 0;
       }
@@ -189,29 +188,38 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
     }
   };
 
-  const performToggleZoom = () => {
-      if (zoomMode) {
-          setZoomMode(false);
-          transformRef.current = { x: 0, y: 0, scale: 1 };
-          if (imgRef.current) {
-              imgRef.current.style.transition = "transform 0.3s ease-out";
-              updateImageTransform();
-          }
-      } else {
-          setZoomMode(true);
-      }
-  };
-
   const handleTouchEnd = (e: React.TouchEvent) => {
-    const timeDiff = Date.now() - touchStartTimeRef.current;
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapTimeRef.current;
+
+    if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+         if (transformRef.current.scale > 1.1) {
+            transformRef.current = { x: 0, y: 0, scale: 1 };
+            setZoomMode(false);
+        } else {
+            transformRef.current = { x: 0, y: 0, scale: 2.5 };
+            setZoomMode(true);
+        }
+        if (imgRef.current) {
+            imgRef.current.style.transition = "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+            updateImageTransform();
+        }
+        lastTapTimeRef.current = 0;
+        return;
+    }
+    lastTapTimeRef.current = now;
+
     const touchEndPos = e.changedTouches[0];
     const distDiff = Math.hypot(
         touchEndPos.pageX - touchStartPosRef.current.x,
         touchEndPos.pageY - touchStartPosRef.current.y
     );
+    const timeDiff = now - touchStartTimeRef.current;
 
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
-        performToggleZoom();
+        if (!zoomMode && transformRef.current.scale === 1) {
+             setZoomMode(true);
+        }
         lastTouchRef.current = null;
         return;
     }
@@ -376,7 +384,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             className="fixed inset-0 z-[100] bg-white flex items-center justify-center animate-in fade-in duration-200 overflow-hidden"
             style={{ touchAction: 'none' }}
         >
-            {/* BOTÕES DE NAVEGAÇÃO LATERAIS DISCRETOS */}
             {!showInfoImage && images.length > 1 && (
                 <>
                     <button 
