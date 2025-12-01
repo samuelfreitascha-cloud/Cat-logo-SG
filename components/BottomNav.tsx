@@ -47,10 +47,4 @@ export const BottomNav: React.FC = () => {
           onClick={() => navigate('/services')}
           className={`flex flex-col items-center ${isActive('/services') ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
         >
-          <User size={24} strokeWidth={isActive('/services') ? 2.5 : 2} />
-          <span className="text-[10px] font-medium mt-1">Serviços</span>
-        </button>
-      </div>
-    </nav>
-  );
-};
+          <User size

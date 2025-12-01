@@ -61,6 +61,16 @@ export const HeroCarousel: React.FC = () => {
   const touchStartTimeRef = useRef(0);
   const touchStartPosRef = useRef({ x: 0, y: 0 });
 
+  // Reset absoluto ao mudar de slide para evitar travamentos
+  useEffect(() => {
+    transformRef.current = { x: 0, y: 0, scale: 1 };
+    setZoomMode(false);
+    if (imgRef.current) {
+        imgRef.current.style.transition = 'none';
+        imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
+    }
+  }, [currentIndex]);
+
   useEffect(() => {
     if (CAROUSEL_IMAGES.length <= 1) return;
     if (isZoomOpen) return;
@@ -76,17 +86,18 @@ export const HeroCarousel: React.FC = () => {
     return () => clearInterval(interval);
   }, [currentIndex, imageErrors, isZoomOpen]);
 
+  // Controle de UI baseado no modo Zoom
   useEffect(() => {
-    if (isZoomOpen) {
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        if (imgRef.current) {
-            imgRef.current.style.transition = 'none';
-            imgRef.current.style.transform = 'translate3d(0,0,0) scale(1)';
+    if (uiRef.current) {
+        const opacity = zoomMode ? '0' : '1';
+        const pointerEvents = zoomMode ? 'none' : 'auto';
+        if (uiRef.current.style.opacity !== opacity) {
+            uiRef.current.style.opacity = opacity;
+            uiRef.current.style.pointerEvents = pointerEvents;
+            uiRef.current.style.transition = 'opacity 0.2s ease-out';
         }
-        isAnimatingRef.current = false;
-        setZoomMode(false);
     }
-  }, [currentIndex, isZoomOpen]);
+  }, [zoomMode]);
 
   const nextSlide = () => {
     setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
@@ -108,6 +119,7 @@ export const HeroCarousel: React.FC = () => {
     const currentImage = CAROUSEL_IMAGES[index];
     if (imageErrors[index]) return;
     setIsZoomOpen(true);
+    // Inicia resetado
     setZoomMode(false);
     transformRef.current = { x: 0, y: 0, scale: 1 };
     isAnimatingRef.current = false;
@@ -121,33 +133,6 @@ export const HeroCarousel: React.FC = () => {
     isAnimatingRef.current = false;
   };
 
-  const handleSwipeNavigation = (direction: 'next' | 'prev') => {
-    isAnimatingRef.current = true;
-    animationStartTimeRef.current = Date.now();
-
-    const screenWidth = window.innerWidth;
-    const exitX = direction === 'next' ? -screenWidth : screenWidth;
-
-    if (imgRef.current) {
-        imgRef.current.style.transition = "transform 0.2s ease-out";
-        imgRef.current.style.transform = `translate3d(${exitX}px, 0, 0) scale(1)`;
-    }
-
-    setTimeout(() => {
-        if (direction === 'next') {
-            setCurrentIndex((prev) => (prev + 1) % CAROUSEL_IMAGES.length);
-        } else {
-            setCurrentIndex((prev) => (prev - 1 + CAROUSEL_IMAGES.length) % CAROUSEL_IMAGES.length);
-        }
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        setZoomMode(false);
-        if (imgRef.current) {
-            imgRef.current.style.transition = "none";
-            imgRef.current.style.transform = "translate3d(0,0,0) scale(1)";
-        }
-    }, 200);
-  };
-
   const updateImageTransform = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
@@ -158,17 +143,27 @@ export const HeroCarousel: React.FC = () => {
     });
   };
 
-  useEffect(() => {
-      if (uiRef.current) {
-        const opacity = zoomMode ? '0' : '1';
-        const pointerEvents = zoomMode ? 'none' : 'auto';
-        if (uiRef.current.style.opacity !== opacity) {
-            uiRef.current.style.opacity = opacity;
-            uiRef.current.style.pointerEvents = pointerEvents;
-            uiRef.current.style.transition = 'opacity 0.2s ease-out';
+  // Função para executar a troca de slide com animação
+  const handleSwipeNavigation = (direction: 'next' | 'prev') => {
+    isAnimatingRef.current = true;
+    const screenWidth = window.innerWidth;
+    const exitX = direction === 'next' ? -screenWidth : screenWidth;
+
+    if (imgRef.current) {
+        imgRef.current.style.transition = "transform 0.2s ease-out";
+        imgRef.current.style.transform = `translate3d(${exitX}px, 0, 0) scale(1)`;
+    }
+
+    setTimeout(() => {
+        if (direction === 'next') {
+            nextSlide();
+        } else {
+            prevSlide();
         }
-      }
-  }, [zoomMode]);
+        // O useEffect do currentIndex cuidará do reset final, mas garantimos aqui também
+        isAnimatingRef.current = false;
+    }, 200);
+  };
 
   const getDistance = (touches: React.TouchList) => {
     return Math.hypot(
@@ -178,12 +173,16 @@ export const HeroCarousel: React.FC = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (imgRef.current) imgRef.current.style.transition = 'none';
+    // Parar qualquer transição imediatamente para dar controle total ao dedo
+    if (imgRef.current) {
+        imgRef.current.style.transition = 'none';
+    }
     isAnimatingRef.current = false;
 
     touchStartTimeRef.current = Date.now();
     touchStartPosRef.current = { x: e.touches[0].pageX, y: e.touches[0].pageY };
 
+    // Cache de layout
     if (imgRef.current) {
         layoutCacheRef.current = {
             imgWidth: imgRef.current.offsetWidth,
@@ -209,10 +208,9 @@ export const HeroCarousel: React.FC = () => {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.cancelable) e.preventDefault();
-    isAnimatingRef.current = false; 
-
     if (!lastTouchRef.current) return;
     
+    // ZOOM (PINCH)
     if (e.touches.length === 2) {
       if (!zoomMode) setZoomMode(true);
       const dist = getDistance(e.touches);
@@ -222,14 +220,18 @@ export const HeroCarousel: React.FC = () => {
       transformRef.current.scale = newScale;
       updateImageTransform();
 
-    } else if (e.touches.length === 1) {
+    } 
+    // PAN ou SWIPE
+    else if (e.touches.length === 1) {
       const dx = e.touches[0].pageX - lastTouchRef.current.x;
       const dy = e.touches[0].pageY - lastTouchRef.current.y;
       
-      // LOGIC SEPARATION:
-      // Scale > 1.05 = Pan (Clamped)
-      // Scale ~ 1 = Swipe (Free)
+      // LÓGICA DE MOVIMENTO:
+      // Se a escala for maior que 1.05, tratamos como PAN (navegar na imagem ampliada) com limites
+      // Se a escala for ~1, tratamos como SWIPE (arrastar para trocar) livre horizontalmente
+      
       if (transformRef.current.scale > 1.05) {
+          // --- PAN (COM LIMITES) ---
           const { imgWidth, imgHeight, viewportWidth, viewportHeight } = layoutCacheRef.current;
           const currentScale = transformRef.current.scale;
           const scaledWidth = imgWidth * currentScale;
@@ -247,7 +249,10 @@ export const HeroCarousel: React.FC = () => {
           transformRef.current.x = nextX;
           transformRef.current.y = nextY;
       } else {
+          // --- SWIPE (LIVRE EM X) ---
+          // Bloqueia Y, permite X livre para sensação de slide
           transformRef.current.x += dx;
+          transformRef.current.y = 0;
       }
 
       lastTouchRef.current = {
@@ -259,20 +264,6 @@ export const HeroCarousel: React.FC = () => {
     }
   };
 
-  const performToggleZoom = () => {
-    if (zoomMode) {
-        setZoomMode(false);
-        transformRef.current = { x: 0, y: 0, scale: 1 };
-        if (imgRef.current) {
-            imgRef.current.style.transition = "transform 0.3s ease-out";
-            updateImageTransform();
-            setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 300);
-        }
-    } else {
-        setZoomMode(true);
-    }
-  };
-
   const handleTouchEnd = (e: React.TouchEvent) => {
     const timeDiff = Date.now() - touchStartTimeRef.current;
     const touchEndPos = e.changedTouches[0];
@@ -281,49 +272,54 @@ export const HeroCarousel: React.FC = () => {
         touchEndPos.pageY - touchStartPosRef.current.y
     );
 
+    // 1. DETECÇÃO DE TAP (CLIQUE)
     if (timeDiff < 300 && distDiff < 20 && e.changedTouches.length === 1) {
-        performToggleZoom();
+        // Toggle Zoom
+        if (zoomMode) {
+            setZoomMode(false);
+            transformRef.current = { x: 0, y: 0, scale: 1 };
+            if (imgRef.current) {
+                imgRef.current.style.transition = "transform 0.3s ease-out";
+                updateImageTransform();
+            }
+        } else {
+            setZoomMode(true);
+        }
         lastTouchRef.current = null;
         return;
     }
 
+    // 2. DECISÃO DE SWIPE vs ZOOM
+    
+    // Se ainda estiver com zoom significativo (> 1.1), mantém o zoom e não faz nada
     if (transformRef.current.scale > 1.1) {
        lastTouchRef.current = null;
        return; 
     }
 
-    const wasZoomed = transformRef.current.scale > 1.05;
+    // Se chegou aqui, a escala é pequena (< 1.1). Vamos considerar como "Reset p/ 1.0"
+    // E verificar se o usuário arrastou o suficiente para trocar de slide.
     
-    // Hard Reset to Normal
     transformRef.current.scale = 1;
     transformRef.current.y = 0;
     setZoomMode(false);
 
-    const swipeThreshold = 70; 
-    
-    if (wasZoomed) {
-        // Just pinched out - Center image, don't swipe yet
-        transformRef.current.x = 0;
+    const swipeThreshold = 70; // Distância mínima para considerar swipe
+    const currentX = transformRef.current.x;
+
+    if (currentX < -swipeThreshold) {
+        handleSwipeNavigation('next');
+    } else if (currentX > swipeThreshold) {
+        handleSwipeNavigation('prev');
     } else {
-        // Was swiping at 1x
-        if (transformRef.current.x < -swipeThreshold) {
-            handleSwipeNavigation('next');
-            lastTouchRef.current = null;
-            return;
-        } else if (transformRef.current.x > swipeThreshold) {
-            handleSwipeNavigation('prev');
-            lastTouchRef.current = null;
-            return;
-        }
+        // Não arrastou o suficiente, volta para o centro
         transformRef.current.x = 0;
+        if (imgRef.current) {
+            imgRef.current.style.transition = "transform 0.2s ease-out";
+            updateImageTransform();
+        }
     }
-
-    if (imgRef.current) {
-        imgRef.current.style.transition = "transform 0.2s ease-out";
-        updateImageTransform();
-        setTimeout(() => { if (imgRef.current) imgRef.current.style.transition = "none"; }, 200);
-    }
-
+    
     lastTouchRef.current = null;
   };
 
