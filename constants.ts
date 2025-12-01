@@ -1,5 +1,3 @@
-
-
 import { Product, Category } from './types';
 
 export const PRODUCTS: Product[] = [

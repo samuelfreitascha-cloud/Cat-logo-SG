@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { Bell, Search, Umbrella, Armchair, PawPrint, Tag, ArrowLeft, CheckCheck, House } from 'lucide-react';
 import { PRODUCTS } from '../constants';
