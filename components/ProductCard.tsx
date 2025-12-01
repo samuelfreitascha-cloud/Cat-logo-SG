@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, X, ChevronLeft, ChevronRight, ShoppingBag, MessageCircle, Info, Image as ImageIcon } from 'lucide-react';
 import { Product } from '../types';
@@ -426,13 +424,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, variant = 'li
             {!showInfoImage && images.length > 1 && (
                 <>
                     <button 
-                        className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-white/80 shadow-md backdrop-blur-sm text-slate-800 hover:bg-white active:scale-95 transition-all"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 z-[110] p-2 rounded-full bg-black/20 text-white/90 hover:bg-black/40 backdrop-blur-[2px] border border-white/10 shadow-sm active:scale-95 transition-all duration-300"
+                        style={{ opacity: zoomMode ? 0 : 1, pointerEvents: zoomMode ? 'none' : 'auto' }}
                         onClick={prevImage}
                     >
                         <ChevronLeft size={28} />
                     </button>
                     <button 
-                        className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] p-3 rounded-full bg-white/80 shadow-md backdrop-blur-sm text-slate-800 hover:bg-white active:scale-95 transition-all"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 z-[110] p-2 rounded-full bg-black/20 text-white/90 hover:bg-black/40 backdrop-blur-[2px] border border-white/10 shadow-sm active:scale-95 transition-all duration-300"
+                        style={{ opacity: zoomMode ? 0 : 1, pointerEvents: zoomMode ? 'none' : 'auto' }}
                         onClick={nextImage}
                     >
                         <ChevronRight size={28} />
